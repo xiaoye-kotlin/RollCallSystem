@@ -9,7 +9,7 @@
 ### 联系我
 
 你可以通过以下链接联系我：
-[点击这里联系我](https://wpa.qq.com/msgrd?v=3&uin=1640432&site=qq&menu=yes)
+[点击这里联系我](https://api.cenguigui.cn/api/qq/links.php?qq=1640432)
 
 或者直接加我的QQ：**1640432**
 
