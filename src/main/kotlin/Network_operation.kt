@@ -8,14 +8,11 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
 import java.awt.Desktop
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
-import java.net.URI
-import java.net.URISyntaxException
+import java.net.*
 import java.util.*
 import java.util.regex.Pattern
 import java.util.zip.ZipInputStream
@@ -23,21 +20,24 @@ import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 import javax.swing.JOptionPane
 import kotlin.coroutines.cancellation.CancellationException
-import java.net.InetAddress
-import java.util.zip.ZipEntry
 
 fun isInternetAvailable(): Boolean {
     return try {
-        // 尝试解析 Baidu 的域名来检查网络
-        val inetAddress = InetAddress.getByName("www.baidu.com")
-        // 如果能成功解析域名，则说明网络可用
-        !inetAddress.equals("")
+        // 使用中国境内的 DNS 服务器（例如 114.114.114.114）
+        val socket = Socket()
+        val socketAddress = InetSocketAddress("114.114.114.114", 53)
+        socket.connect(socketAddress, 1500)
+        socket.close()
+        Global.setIsInternetAvailable(true)
+        true
+    } catch (e: SocketTimeoutException) {
+        // 连接超时表示没有网络连接
+        false
     } catch (e: Exception) {
-        e.printStackTrace()
+        // 其他异常情况也返回不可用
         false
     }
 }
-
 
 suspend fun getOnline(): String {
     val url = "${Global.url}/index.php?class=${Global.CLASS}"
@@ -683,6 +683,41 @@ suspend fun getWallpaperSwitch(): String {
     }
 }
 
+suspend fun getDeleteWallpaperSwitch(): String {
+    val url = "https://sharechain.qq.com/f46ec9220d2fc7236a420b9f80534c10"
+
+    if (!isInternetAvailable()) {
+        return "No Wifi"
+    }
+
+    return withContext(Dispatchers.IO) {
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).build()
+
+        try {
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseBody = response.body?.string() ?: "【ISDELETEWALLPAPER】false【ISDELETEWALLPAPER】"
+                val pattern = Pattern.compile("【ISDELETEWALLPAPER】(.*?)【ISDELETEWALLPAPER】", Pattern.DOTALL)
+                val matcher = pattern.matcher(responseBody)
+
+                if (matcher.find()) {
+                    println("IsDeleteWallPaperOpen: ${matcher.group(1)}")
+                    matcher.group(1) ?: "false"
+                } else {
+                    "false"
+                }
+            } else {
+                "false"
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            "false"
+        } catch (_: CancellationException) {
+            "false"
+        }
+    }
+}
 
 fun fetchWebPage(url: String) {
     // 尝试打开 URL

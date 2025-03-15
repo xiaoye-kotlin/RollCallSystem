@@ -48,6 +48,20 @@ fun readFromFile(filePath: String): String {
     }
 }
 
+fun deleteFileOrDirectory(filePath: String) {
+    val file = File(filePath)
+
+    if (file.exists()) {
+        if (file.isDirectory) {
+            // 如果是目录，递归删除目录中的所有文件
+            file.listFiles()?.forEach { deleteFileOrDirectory(it.absolutePath) }
+        }
+        file.delete() // 删除文件或目录
+    } else {
+        println("404")
+    }
+}
+
 @Composable
 fun title() {
     /*
@@ -98,7 +112,6 @@ fun title() {
                 println("Data is touched")
                 Global.updateStudentListFromJson(jsonData)
                 Global.updateSubjectListFromJson(subjectData)
-                Global.setIsInternetAvailable(true)
                 countdownName = Global.countdownName
                 countdownTime = Global.countdownTime
                 if (countdown <= 0 && jsonData != "无") {
@@ -191,9 +204,6 @@ fun title() {
             Global.setIsInternetAvailable(false)
         }
     }
-
-    // 动态壁纸函数
-    videoWallpaper("D:\\Xiaoye\\wallpaper.mp4")
 
     Box(
         modifier = Modifier

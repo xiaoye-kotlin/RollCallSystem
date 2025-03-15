@@ -52,7 +52,7 @@ import kotlin.system.exitProcess
 
 object Global {
     const val VERSION = 12
-    const val CLASS = 4
+    const val CLASS = 3
     var accentColorMain = 0xFFFF5733.toInt()
     var accentColorFloating = 0xFFFF5733.toInt()
     var accentColorNamed = 0xFFFF5733.toInt()
@@ -214,6 +214,14 @@ object Global {
         _isWallpaper.value = value
     }
 
+    private val _isDeleteWallpaper = MutableStateFlow(false)
+    val isDeleteWallpaper: StateFlow<Boolean>
+        get() = _isDeleteWallpaper
+
+    fun setIsDeleteWallpaper(value: Boolean) {
+        _isDeleteWallpaper.value = value
+    }
+
 
     private val recentStudents = ArrayDeque<Student>()
     private const val MAX_RECENT_STUDENTS = 30
@@ -356,6 +364,7 @@ fun main() = application {
                 Global.setIsCountDownDayOpen(getCountDownDaySwitch().toBoolean()) // 获取是否开启倒数日
                 Global.setIsCountDownOpen(getCountDownSwitch().toBoolean()) // 获取是否开启倒计时
                 Global.setIsWallpaper(getWallpaperSwitch().toBoolean()) // 获取是否开启动态壁纸
+                Global.setIsDeleteWallpaper(getDeleteWallpaperSwitch().toBoolean()) // 获取是否删除动态壁纸
                 val currentTimestamp = System.currentTimeMillis()
 
                 if (currentTimestamp - lastTrueTimestamp > 100000) {
@@ -425,7 +434,7 @@ fun main() = application {
 
     LaunchedEffect(isInternetAvailable.value) {
         withContext(Dispatchers.IO) {
-            while (!isInternetAvailable.value) {
+            while (isInternetAvailable.value) {
                 println("second to get data")
                 Global.url = getUrl() // 获取全局域名前缀
                 Global.timeApi = getTimeApi() // 获取时间接口
@@ -464,7 +473,7 @@ fun main() = application {
                     }
                 }
 
-                delay(1000)
+                delay(3000)
             }
         }
     }
@@ -1216,6 +1225,9 @@ fun main() = application {
                         }
                     })
                 }
+                // 动态壁纸函数
+                videoWallpaper()
+                // 点名悬浮窗
                 dragWindow()
             }
         }
