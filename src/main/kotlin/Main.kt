@@ -51,7 +51,7 @@ import kotlin.random.Random
 import kotlin.system.exitProcess
 
 object Global {
-    const val VERSION = 12
+    const val VERSION = 13
     const val CLASS = 3
     var accentColorMain = 0xFFFF5733.toInt()
     var accentColorFloating = 0xFFFF5733.toInt()
