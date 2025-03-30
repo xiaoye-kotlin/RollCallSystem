@@ -16,7 +16,6 @@ import java.awt.*
 import java.io.File
 import javax.swing.JFrame
 
-@OptIn(DelicateCoroutinesApi::class)
 @Composable
 fun videoWallpaper() {
 
@@ -39,6 +38,8 @@ fun videoWallpaper() {
                     delay(3000)
                 }
             }
+        } else {
+            downloadVideo = false
         }
     }
 

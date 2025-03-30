@@ -194,14 +194,16 @@ fun title() {
         {
             isDownloading = true
         } else if (!isInternetAvailable()) {
+            Global.setIsInternetAvailable(false)
             if (readFromFile(jsonNameListFilePath) != "404" || readFromFile(jsonSubjectListFilePath) != "404") {
                 tips = "当前无网络连接或无法上网，即将进入离线模式"
                 delay(900)
                 Global.setIsLoading(false)
             } else {
                 tips = "联网后将自动运行，5秒后最小化程序。"
+                delay(4900)
+                Global.setIsLoading(false)
             }
-            Global.setIsInternetAvailable(false)
         }
     }
 

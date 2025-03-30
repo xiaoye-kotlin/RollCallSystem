@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.rollCallSystem.Ye"
-version = "1.0-SNAPSHOT"
+version = "15.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -24,7 +24,7 @@ dependencies {
 
     implementation("org.openjfx:javafx-controls:17")
     implementation("org.openjfx:javafx-graphics:17")
-    implementation("org.openjfx:javafx-media:17")  // For media functionality
+    implementation("org.openjfx:javafx-media:21.0.2")  // For media functionality
 
     // JNA (Java Native Access) for system-level interactions
     implementation("net.java.dev.jna:jna:5.8.0")
@@ -53,8 +53,7 @@ compose.desktop {
         buildTypes.release {
 
             proguard {
-//                configurationFiles.from(project.file("proguard-rules.pro"))
-                isEnabled = false
+                configurationFiles.from(project.file("proguard-rules.pro"))
             }
 
         }

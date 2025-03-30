@@ -23,18 +23,16 @@ import kotlin.coroutines.cancellation.CancellationException
 
 fun isInternetAvailable(): Boolean {
     return try {
-        // 使用中国境内的 DNS 服务器（例如 114.114.114.114）
+        // 尝试连接百度的服务器
         val socket = Socket()
-        val socketAddress = InetSocketAddress("114.114.114.114", 53)
+        val socketAddress = InetSocketAddress("baidu.com", 80)
         socket.connect(socketAddress, 1500)
         socket.close()
         Global.setIsInternetAvailable(true)
         true
     } catch (e: SocketTimeoutException) {
-        // 连接超时表示没有网络连接
         false
     } catch (e: Exception) {
-        // 其他异常情况也返回不可用
         false
     }
 }
@@ -49,7 +47,7 @@ suspend fun getOnline(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: ""
+                val responseBody = response.body.string()
                 responseBody
             } else {
                 ""
@@ -94,7 +92,7 @@ fun checkAndCopyModel(url: String, targetDir: File, testDir: File): Boolean {
             }
 
             // 解压 ZIP 文件
-            response.body?.byteStream()?.let {
+            response.body.byteStream().let {
                 ZipInputStream(it).use { zip ->
                     var entry = zip.nextEntry
                     while (entry != null) {
@@ -150,8 +148,7 @@ suspend fun getDownloadUrl(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string()
-                    ?: "【DOWNLOAD】https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.zip【DOWNLOAD】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【DOWNLOAD】(.*?)【DOWNLOAD】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -187,7 +184,7 @@ suspend fun getUrl(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【URL】http://202603.allfor.today【URL】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【URL】(.*?)【URL】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -223,7 +220,7 @@ suspend fun getIsOpen(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【ISOPEN】true【ISOPEN】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【ISOPEN】(.*?)【ISOPEN】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -259,7 +256,7 @@ suspend fun getIsVoiceIdentifyOpen(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【ISVOICE】true【ISVOICE】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【ISVOICE】(.*?)【ISVOICE】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -295,7 +292,7 @@ suspend fun getIsTimeOpen(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【ISTIME】true【ISTIME】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【ISTIME】(.*?)【ISTIME】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -330,8 +327,7 @@ suspend fun getTimeApi(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string()
-                    ?: "无"
+                val responseBody = response.body.string()
                 println("TimeApi: $responseBody")
                 responseBody
             } else {
@@ -359,7 +355,7 @@ suspend fun getTimeData(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "无"
+                val responseBody = response.body.string()
                 responseBody
             } else {
                 "无"
@@ -386,7 +382,7 @@ suspend fun getNameList(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "无"
+                val responseBody = response.body.string()
                 println(responseBody)
                 responseBody
             } else {
@@ -416,7 +412,7 @@ suspend fun getSubjectList(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "无"
+                val responseBody = response.body.string()
                 println(responseBody)
                 responseBody
             } else {
@@ -445,7 +441,7 @@ suspend fun getCountDownDaySwitch(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【ISCOUNTDOWNOPEN】false【ISCOUNTDOWNOPEN】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【ISCOUNTDOWNOPEN】(.*?)【ISCOUNTDOWNOPEN】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -481,9 +477,9 @@ suspend fun getCountDownName(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【COUNTDOWNNAME】高考【COUNTDOWNNAME】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【COUNTDOWNNAME】(.*?)【COUNTDOWNNAME】", Pattern.DOTALL)
-                val matcher = pattern.matcher(responseBody)
+                val matcher = responseBody.let { pattern.matcher(it) }
 
                 if (matcher.find()) {
                     println("CountDownName: ${matcher.group(1)}")
@@ -517,7 +513,7 @@ suspend fun getCountDownTime(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【COUNTDOWN】2026-6-7【COUNTDOWN】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【COUNTDOWN】(.*?)【COUNTDOWN】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -553,7 +549,7 @@ suspend fun getLuckyGuy(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【LUCKYGUY】显福【LUCKYGUY】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【LUCKYGUY】(.*?)【LUCKYGUY】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -589,7 +585,7 @@ suspend fun getEasterEggSwitch(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【ISEASTEREGG】false【ISEASTEREGG】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【ISEASTEREGG】(.*?)【ISEASTEREGG】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -625,7 +621,7 @@ suspend fun getCountDownSwitch(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【ISCOUNTDOWN】false【ISCOUNTDOWN】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【ISCOUNTDOWN】(.*?)【ISCOUNTDOWN】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -661,7 +657,7 @@ suspend fun getWallpaperSwitch(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【ISWALLPAPER】false【ISWALLPAPER】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【ISWALLPAPER】(.*?)【ISWALLPAPER】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -697,7 +693,7 @@ suspend fun getDeleteWallpaperSwitch(): String {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string() ?: "【ISDELETEWALLPAPER】false【ISDELETEWALLPAPER】"
+                val responseBody = response.body.string()
                 val pattern = Pattern.compile("【ISDELETEWALLPAPER】(.*?)【ISDELETEWALLPAPER】", Pattern.DOTALL)
                 val matcher = pattern.matcher(responseBody)
 
@@ -786,7 +782,7 @@ fun sendRequestAsync(msg: String, callback: (String?) -> Unit) {
 
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string()
+                val responseBody = response.body.string()
                 println("response: $responseBody")
                 val content = gson.fromJson(responseBody, JsonObject::class.java)
                     .getAsJsonArray("choices")[0]

@@ -30,16 +30,17 @@ import androidx.compose.ui.window.*
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
+import javafx.application.Platform
+import javafx.scene.media.Media
+import javafx.scene.media.MediaPlayer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import java.awt.Dimension
-import java.awt.GraphicsEnvironment
-import java.awt.Point
-import java.awt.Toolkit
-import java.io.BufferedReader
+import java.awt.*
 import java.io.File
-import java.io.InputStreamReader
+import java.net.URI
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import javax.imageio.ImageIO
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
@@ -51,7 +52,7 @@ import kotlin.random.Random
 import kotlin.system.exitProcess
 
 object Global {
-    const val VERSION = 13
+    const val VERSION = 15
     const val CLASS = 3
     var accentColorMain = 0xFFFF5733.toInt()
     var accentColorFloating = 0xFFFF5733.toInt()
@@ -227,7 +228,7 @@ object Global {
     private const val MAX_RECENT_STUDENTS = 30
 
     fun getRandomStudent(): Pair<String, String>? {
-        println("execute a random list!!!")
+        println("Executing a random student selection!")
 
         if (studentList.isEmpty()) return null
 
@@ -239,16 +240,19 @@ object Global {
 
         // 如果可用学生列表为空，则清空历史记录并重新尝试选择
         if (availableStudents.isEmpty()) {
-            recentStudents.clear()
+            recentStudents.clear() // 清空历史记录
             return getRandomStudent() // 重新尝试选择
         }
 
-        // 使用权重进行随机选择
-        var selectedStudent: Student? = null
-        val randomWeight = Random.nextInt(0, totalWeight)
+        // 打乱可用学生的顺序，使得选择更加随机
+        val shuffledAvailableStudents = availableStudents.shuffled()
 
+        // 使用权重进行随机选择
+        val randomWeight = Random.nextInt(0, totalWeight)
         var cumulativeWeight = 0
-        for (student in availableStudents) {
+        var selectedStudent: Student? = null
+
+        for (student in shuffledAvailableStudents) {
             cumulativeWeight += student.probability
             if (randomWeight < cumulativeWeight) {
                 selectedStudent = student
@@ -258,7 +262,7 @@ object Global {
 
         // 如果选中的学生无效，则重新尝试选择
         while (selectedStudent == null || selectedStudent.name.isEmpty()) {
-            return getRandomStudent() // 递归重新尝试
+            return getRandomStudent() // 重新尝试选择
         }
 
         // 将选中的学生加入最近选择的记录中
@@ -356,63 +360,65 @@ fun main() = application {
 
     var lastTrueTimestamp = 0L
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isInternetAvailable.value) {
         withContext(Dispatchers.IO) {
-            while (true) {
-                Global.setIsVoiceIdentify(getIsVoiceIdentifyOpen().toBoolean()) // 获取是否开启语音识别
-                Global.setIsTime(getIsTimeOpen().toBoolean()) // 获取是否开启时间提醒
-                Global.setIsCountDownDayOpen(getCountDownDaySwitch().toBoolean()) // 获取是否开启倒数日
-                Global.setIsCountDownOpen(getCountDownSwitch().toBoolean()) // 获取是否开启倒计时
-                Global.setIsWallpaper(getWallpaperSwitch().toBoolean()) // 获取是否开启动态壁纸
-                Global.setIsDeleteWallpaper(getDeleteWallpaperSwitch().toBoolean()) // 获取是否删除动态壁纸
-                val currentTimestamp = System.currentTimeMillis()
+            while (isInternetAvailable.value) {
+                if (Global.url != "No Wifi" && Global.url.contains("http")) {
+                    Global.setIsVoiceIdentify(getIsVoiceIdentifyOpen().toBoolean()) // 获取是否开启语音识别
+                    Global.setIsTime(getIsTimeOpen().toBoolean()) // 获取是否开启时间提醒
+                    Global.setIsCountDownDayOpen(getCountDownDaySwitch().toBoolean()) // 获取是否开启倒数日
+                    Global.setIsCountDownOpen(getCountDownSwitch().toBoolean()) // 获取是否开启倒计时
+                    Global.setIsWallpaper(getWallpaperSwitch().toBoolean()) // 获取是否开启动态壁纸
+                    Global.setIsDeleteWallpaper(getDeleteWallpaperSwitch().toBoolean()) // 获取是否删除动态壁纸
+                    val currentTimestamp = System.currentTimeMillis()
 
-                if (currentTimestamp - lastTrueTimestamp > 100000) {
-                    if (getEasterEggSwitch().toBooleanStrictOrNull() == true) {
-                        Global.setIsEasterEgg(true)
-                        lastTrueTimestamp = currentTimestamp
-                    } else {
-                        Global.setIsEasterEgg(false)
-                    }
-                }
-
-                if (getLuckyGuy().contains("|")) {
-                    try {
-                        // 将字符串按 `|` 分隔
-                        val items = getLuckyGuy().split("|")
-
-                        // 使用 Gson 将拆分后的数据转换为 JSON
-                        val gson = Gson()
-                        val luckyguyJson = gson.toJson(items)
-
-                        Global.setLuckyGuy(luckyguyJson)
-
-                        // 写入文件
-                        writeToFile("D:/Xiaoye/LuckyGuy.json", luckyguyJson)
-
-                    } catch (e: Exception) {
-                        // 如果出现异常，打印错误信息并跳过
-                        println("转换失败：${e.message}")
-                    }
-                }
-                if (isTime.value && Global.timeApi != "" && Global.timeApi.contains("http")) {
-                    parseTimeJsonResponse(getTimeData()).weekday.let {
-                        Global.setWeek(it)
-                    }
-                    parseTimeJsonResponse(getTimeData()).date.let {
-                        it.substring(11, 16).let { timeString ->
-                            Global.setTime(timeString)
+                    if (currentTimestamp - lastTrueTimestamp > 100000) {
+                        if (getEasterEggSwitch().toBooleanStrictOrNull() == true) {
+                            Global.setIsEasterEgg(true)
+                            lastTrueTimestamp = currentTimestamp
+                        } else {
+                            Global.setIsEasterEgg(false)
                         }
                     }
-                    println(date.value)
-                    println(week.value)
-                    println(time.value)
-                }
 
-                if (isCountDownDayOpen.value && Global.timeApi != "" && Global.timeApi.contains("http")) {
-                    parseTimeJsonResponse(getTimeData()).date.let { rawDate ->
-                        rawDate.split(" ").getOrNull(0)?.let { dateString ->
-                            Global.setDate(dateString)
+                    if (getLuckyGuy().contains("|")) {
+                        try {
+                            // 将字符串按 `|` 分隔
+                            val items = getLuckyGuy().split("|")
+
+                            // 使用 Gson 将拆分后的数据转换为 JSON
+                            val gson = Gson()
+                            val luckyguyJson = gson.toJson(items)
+
+                            Global.setLuckyGuy(luckyguyJson)
+
+                            // 写入文件
+                            writeToFile("D:/Xiaoye/LuckyGuy.json", luckyguyJson)
+
+                        } catch (e: Exception) {
+                            // 如果出现异常，打印错误信息并跳过
+                            println("转换失败：${e.message}")
+                        }
+                    }
+                    if (isTime.value && Global.timeApi != "" && Global.timeApi.contains("http")) {
+                        parseTimeJsonResponse(getTimeData()).weekday.let {
+                            Global.setWeek(it)
+                        }
+                        parseTimeJsonResponse(getTimeData()).date.let {
+                            it.substring(11, 16).let { timeString ->
+                                Global.setTime(timeString)
+                            }
+                        }
+                        println(date.value)
+                        println(week.value)
+                        println(time.value)
+                    }
+
+                    if (isCountDownDayOpen.value && Global.timeApi != "" && Global.timeApi.contains("http")) {
+                        parseTimeJsonResponse(getTimeData()).date.let { rawDate ->
+                            rawDate.split(" ").getOrNull(0)?.let { dateString ->
+                                Global.setDate(dateString)
+                            }
                         }
                     }
                 }
@@ -467,6 +473,8 @@ fun main() = application {
                     break
                 }
 
+                checkAndCopyModel("http://xyc.okc.today/LAVF.zip", File("D:/Xiaoye"), File("D:/Xiaoye/LAVF"))
+
                 if (readFromFile("D:/Xiaoye/LuckyGuy.json") != "404") {
                     if (isValidJson(readFromFile("D:/Xiaoye/LuckyGuy.json"))) {
                         Global.setLuckyGuy(readFromFile("D:/Xiaoye/LuckyGuy.json"))
@@ -515,7 +523,6 @@ fun main() = application {
             isFirstNameVisible = true
             delay(6000)
             driveIsLongPressed.value = false
-            killProcess("msedge.exe")
             floatingWindowVisible = true
             isReadyVisible = false
             isLastNameVisible = false
@@ -536,7 +543,6 @@ fun main() = application {
             delay(1500)
             isFirstNameVisible = true
             delay(2000)
-            killProcess("msedge.exe")
             floatingWindowVisible = true
             Global.setButtonState("点名")
         } else {
@@ -753,6 +759,12 @@ fun main() = application {
             transparent = true,
             alwaysOnTop = true,
         ) {
+
+            LaunchedEffect(isLoading.value) {
+                if (!isLoading.value) {
+                    window.extendedState = Frame.ICONIFIED
+                }
+            }
 
             val icon = ImageIO.read(javaClass.getResourceAsStream("/images/callTheRoll.png"))
             val awtWindow = this.window
@@ -1300,6 +1312,28 @@ fun main() = application {
                 window.extendedState = JFrame.MAXIMIZED_BOTH
             }
 
+            LaunchedEffect(isOpenHtml) {
+                if (!isOpenHtml && Global.url.contains("http")) {
+                    isOpenHtml = true
+                    val audioUrl = if (!driveIsLongPressed.value) {
+                        selectedStudent?.let { student ->
+                            if (student.second == "服马超·王显福") {
+                                "${Global.url}/voice.php?text=国服马，超王显福"
+                            } else {
+                                "${Global.url}/voice.php?text=${student.first}${student.second}"
+                            }
+                        } ?: ""
+                    } else {
+                        "${Global.url}/voice.php?text=$student1,$student2,$student3"
+                    }
+                    if (audioUrl.isNotEmpty()) {
+                        withContext(Dispatchers.IO) {
+                            playAudio(audioUrl)
+                        }
+                    }
+                }
+            }
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1381,20 +1415,6 @@ fun main() = application {
                                         .padding(start = 200.dp, top = 50.dp)
                                 )
                             }
-                        }
-                    }
-                    if (!isOpenHtml && Global.url.contains("http")) {
-                        isOpenHtml = true
-                        if (!driveIsLongPressed.value) {
-                            selectedStudent?.let {
-                                if (it.second == "服马超·王显福") {
-                                    fetchWebPage("${Global.url}/voice.php?text=国服马，超王显福")
-                                } else {
-                                    fetchWebPage("${Global.url}/voice.php?text=${it.first}${it.second}")
-                                }
-                            }
-                        } else {
-                            fetchWebPage("${Global.url}/voice.php?text=$student1,$student2,$student3")
                         }
                     }
 
@@ -1547,7 +1567,54 @@ fun DrawScope.drawStar(size: Float, center: Offset, rotationAngle: Float) {
     }
 }
 
-fun killProcess(processName: String) {
+var mediaPlayer: MediaPlayer? = null
+
+fun playAudio(url: String) {
+    val isInternetAvailable = Global.isInternetAvailable.value
+    val voiceDir = File("D:/Xiaoye/Voice/")
+    if (!voiceDir.exists()) voiceDir.mkdirs()
+
+    val fileName = url.hashCode().toString() + ".mp3"
+    val localFile = File(voiceDir, fileName)
+
+    if (localFile.exists()) {
+        playLocalAudio(localFile.absolutePath)
+    } else if (isInternetAvailable) {
+        downloadAudio(url, localFile) { success ->
+            if (success) playLocalAudio(localFile.absolutePath)
+            else println("音频下载失败: $url")
+        }
+    }
+}
+
+fun playLocalAudio(filePath: String) {
+    Platform.runLater {
+        mediaPlayer?.dispose()
+        val media = Media(File(filePath).toURI().toString())
+        mediaPlayer = MediaPlayer(media).apply {
+            play()
+            setOnEndOfMedia {
+                dispose()
+                mediaPlayer = null
+            }
+        }
+    }
+}
+
+fun downloadAudio(url: String, file: File, onComplete: (Boolean) -> Unit) {
+    try {
+        URI(url).toURL().openStream().use { input ->
+            Files.copy(input, file.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        }
+        onComplete(true)
+    } catch (e: Exception) {
+        e.printStackTrace()
+        onComplete(false)
+    }
+}
+
+
+/*fun killProcess(processName: String) {
     println("execute kill process")
     try {
         val processBuilder = ProcessBuilder("taskkill", "/F", "/IM", processName)
@@ -1565,4 +1632,4 @@ fun killProcess(processName: String) {
     } catch (e: Exception) {
         e.printStackTrace()
     }
-}
+}*/
