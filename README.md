@@ -23,6 +23,11 @@
 - 📆 **倒数日**：显示重要日期的倒数
 - 🎉 **彩蛋**：隐藏的惊喜功能，让课堂更有趣
 
+![功能截图1](https://img.picui.cn/free/2025/03/16/67d6b5f77c983.png)
+![功能截图2](https://img.picui.cn/free/2025/03/16/67d6b65bb811c.png)
+![功能截图3](https://img.picui.cn/free/2025/03/16/67d6b65aeadb0.png)
+![功能截图4](https://img.picui.cn/free/2025/03/16/67d6b65cd434f.png)
+
 这个程序使用了 Jetpack Compose Desktop，带来了现代化和高效的用户界面。其简洁、直观的设计让用户轻松上手，功能强大的同时又不失趣味。想要让课堂充满活力和乐趣，这个程序是一个完美的选择！
 
 ---
