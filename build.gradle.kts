@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "com.rollCallSystem.Ye"
-version = "15.0-SNAPSHOT"
+version = "17.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -61,7 +61,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Exe)
             packageName = "RollCallSystem"
-            packageVersion = "13.0.0"
+            packageVersion = "17.0.0"
             modules("java.instrument", "java.sql", "jdk.jfr", "jdk.unsupported", "jdk.unsupported.desktop")
             // 设置 JVM 参数，强制使用 UTF-8 编码
             jvmArgs("-Dfile.encoding=UTF-8")

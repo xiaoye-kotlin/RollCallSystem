@@ -1,18 +1,26 @@
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.google.gson.annotations.SerializedName
 import com.google.gson.reflect.TypeToken
-import okhttp3.Response
 
+// 学生数据模型
 data class Student(
     val name: String = "",
     val probability: Int = 0
 )
 
 fun parseStudentJson(json: String): List<Student> {
-    //使用 Gson 将 JSON 转换为 List<Student>
-    val gson = Gson()
-    val studentListType = object : TypeToken<List<Student>>() {}.type
-    return gson.fromJson(json, studentListType)
+    return try {
+        val gson = Gson()
+        val studentListType = object : TypeToken<List<Student>>() {}.type
+        gson.fromJson(json, studentListType)
+    } catch (e: JsonSyntaxException) {
+        println("解析学生数据时发生错误: ${e.message}")
+        emptyList()  // 返回空列表或你希望的默认值
+    } catch (e: Exception) {
+        println("发生未知错误: ${e.message}")
+        emptyList()
+    }
 }
 
 // 课程数据模型
@@ -31,9 +39,17 @@ data class DailySchedule(
 
 // 解析 JSON 字符串并返回 Map 类型
 fun parseSubjectJson(json: String): Map<String, DailySchedule> {
-    val gson = Gson()
-    val type = object : TypeToken<Map<String, DailySchedule>>() {}.type
-    return gson.fromJson(json, type)
+    return try {
+        val gson = Gson()
+        val type = object : TypeToken<Map<String, DailySchedule>>() {}.type
+        gson.fromJson(json, type)
+    } catch (e: JsonSyntaxException) {
+        println("解析课程数据时发生错误: ${e.message}")
+        emptyMap()  // 返回空的 Map 或你希望的默认值
+    } catch (e: Exception) {
+        println("发生未知错误: ${e.message}")
+        emptyMap()
+    }
 }
 
 // 定义 Root 类
@@ -46,6 +62,14 @@ data class TimeResponse(
 
 // 解析 JSON 数据
 fun parseTimeJsonResponse(json: String): TimeResponse {
-    val gson = Gson()
-    return gson.fromJson(json, TimeResponse::class.java)  // 使用 TimeResponse 类来解析
+    return try {
+        val gson = Gson()
+        gson.fromJson(json, TimeResponse::class.java)
+    } catch (e: JsonSyntaxException) {
+        println("解析时间数据时发生错误: ${e.message}")
+        TimeResponse()  // 返回默认值的实例
+    } catch (e: Exception) {
+        println("发生未知错误: ${e.message}")
+        TimeResponse()  // 返回默认值的实例
+    }
 }

@@ -52,15 +52,14 @@ import kotlin.random.Random
 import kotlin.system.exitProcess
 
 object Global {
-    const val VERSION = 15
-    const val CLASS = 3
+    const val VERSION = 17
+    const val CLASS = 1
     var accentColorMain = 0xFFFF5733.toInt()
     var accentColorFloating = 0xFFFF5733.toInt()
     var accentColorNamed = 0xFFFF5733.toInt()
     var isRandomColor = false
     var url = ""
     var downloadUrl = ""
-    var isOpen = ""
     var timeApi = ""
     var countdownName = ""
     var countdownTime = ""
@@ -93,6 +92,14 @@ object Global {
 
     fun setIsLoading(value: Boolean) {
         _isLoading.value = value
+    }
+
+    private val _isOpen = MutableStateFlow(true)
+    val isOpen: StateFlow<Boolean>
+        get() = _isOpen
+
+    fun setIsOpen(value: Boolean) {
+        _isOpen.value = value
     }
 
     private val _buttonState = MutableStateFlow("点名")
@@ -223,6 +230,13 @@ object Global {
         _isDeleteWallpaper.value = value
     }
 
+    private val _isMinimize = MutableStateFlow(false)
+    val isMinimize: StateFlow<Boolean>
+        get() = _isMinimize
+
+    fun setIsMinimize(value: Boolean) {
+        _isMinimize.value = value
+    }
 
     private val recentStudents = ArrayDeque<Student>()
     private const val MAX_RECENT_STUDENTS = 30
@@ -276,6 +290,8 @@ object Global {
         val firstPart = name.firstOrNull()?.toString() ?: ""
         val secondPart = name.drop(1)
 
+        recordAttendance(name)
+
         return Pair(firstPart, secondPart)
     }
 
@@ -292,10 +308,31 @@ fun isValidJson(jsonString: String): Boolean {
     }
 }
 
+fun recordAttendance(studentName: String) {
+    val filePath = "D:/Xiaoye/StatisticalData.json"
+    val jsonData = readFromFile(filePath)
+
+    val type = object : TypeToken<MutableMap<String, Int>>() {}.type
+    val dataMap: MutableMap<String, Int> = if (jsonData != "404") {
+        gson.fromJson(jsonData, type)
+    } else {
+        mutableMapOf()
+    }
+
+    // 更新学生点名次数
+    dataMap[studentName] = (dataMap[studentName] ?: 0) + 1
+
+    // 写回文件
+    val newJson = gson.toJson(dataMap)
+    writeToFile(filePath, newJson)
+}
+
 fun main() = application {
-    val isInternetAvailable = Global.isInternetAvailable.collectAsState()
+    val isOpen = Global.isOpen.collectAsState()
+    Global.isInternetAvailable.collectAsState()
     val buttonState = Global.buttonState.collectAsState()
     val isLoading = Global.isLoading.collectAsState()
+    val isMinimize = Global.isMinimize.collectAsState()
     val isVoiceIdentify = Global.isVoiceIdentify.collectAsState()
     val isLongPressed = Global.isLongPressed.collectAsState()
     val isEasterEgg = Global.isEasterEgg.collectAsState()
@@ -319,12 +356,6 @@ fun main() = application {
     }
 
     var isOpenHtml by remember { mutableStateOf(false) }
-    val targetDir = File("D:/")
-    val testDir = File("D:/vosk-model-small-cn-0.22")
-
-    var isModelExists by remember { mutableStateOf(false) }
-    var jsonData by remember { mutableStateOf("无") }
-    var subjectData by remember { mutableStateOf("无") }
 
     val isTime = Global.isTime.collectAsState()
 
@@ -335,11 +366,6 @@ fun main() = application {
     val time = Global.time.collectAsState()
     val date = Global.date.collectAsState()
     val luckyGuy = Global.luckyGuy.collectAsState()
-
-    var countdownName by remember { mutableStateOf("无") }
-    var countdownTime by remember { mutableStateOf("无") }
-    val jsonCountDownNameFilePath = "D:/Xiaoye/CountDownName.json"
-    val jsonCountDownTimeFilePath = "D:/Xiaoye/CountDownTime.json"
 
     var operating by remember { mutableStateOf(0) }
 
@@ -353,6 +379,11 @@ fun main() = application {
                 }
                 writeToFile("D:/Xiaoye/Version", Global.VERSION.toString())
                 writeToFile("D:/Xiaoye/Operating", operating.toString())
+                val runningTimeStr = readFromFile("D:/Xiaoye/RunningTime")
+                val runningTime = runningTimeStr.toIntOrNull() ?: 0
+
+                writeToFile("D:/Xiaoye/RunningTime", (runningTime + 1).toString())
+
                 delay(1000)
             }
         }
@@ -360,16 +391,24 @@ fun main() = application {
 
     var lastTrueTimestamp = 0L
 
-    LaunchedEffect(isInternetAvailable.value) {
+    LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            while (isInternetAvailable.value) {
+            while (true) {
+                Global.url = getUrl() // 获取全局域名前缀
+                println("IsInternetAvailable: ${isInternetAvailable()}")
                 if (Global.url != "No Wifi" && Global.url.contains("http")) {
+                    Global.setIsOpen(getIsOpen().toBoolean()) // 获取是否开启程序
                     Global.setIsVoiceIdentify(getIsVoiceIdentifyOpen().toBoolean()) // 获取是否开启语音识别
                     Global.setIsTime(getIsTimeOpen().toBoolean()) // 获取是否开启时间提醒
                     Global.setIsCountDownDayOpen(getCountDownDaySwitch().toBoolean()) // 获取是否开启倒数日
                     Global.setIsCountDownOpen(getCountDownSwitch().toBoolean()) // 获取是否开启倒计时
                     Global.setIsWallpaper(getWallpaperSwitch().toBoolean()) // 获取是否开启动态壁纸
                     Global.setIsDeleteWallpaper(getDeleteWallpaperSwitch().toBoolean()) // 获取是否删除动态壁纸
+
+                    if (!isOpen.value) {
+                        exitProcess(0)
+                    }
+
                     val currentTimestamp = System.currentTimeMillis()
 
                     if (currentTimestamp - lastTrueTimestamp > 100000) {
@@ -438,54 +477,6 @@ fun main() = application {
         }
     }
 
-    LaunchedEffect(isInternetAvailable.value) {
-        withContext(Dispatchers.IO) {
-            while (isInternetAvailable.value) {
-                println("second to get data")
-                Global.url = getUrl() // 获取全局域名前缀
-                Global.timeApi = getTimeApi() // 获取时间接口
-                Global.countdownName = getCountDownName() // 获取倒计时名字
-                Global.countdownTime = getCountDownTime() // 获取倒计时时间
-                Global.setIsVoiceIdentify(getIsVoiceIdentifyOpen().toBooleanStrictOrNull() == true) // 获取是否开启语音识别
-                Global.setIsTime(getIsTimeOpen().toBooleanStrictOrNull() == true) // 获取是否开启时间提醒
-                Global.downloadUrl = getDownloadUrl() // 获取模型下载链接
-                Global.isOpen = getIsOpen() // 获取程序开关
-                if (Global.url != "No Wifi" && Global.url.contains("http")) {
-                    countdownName = readFromFile(jsonCountDownNameFilePath)
-                    countdownTime = readFromFile(jsonCountDownTimeFilePath)
-                    if (countdownName != "无") {
-                        Global.countdownName = countdownName
-                    }
-                    if (countdownTime != "无") {
-                        Global.countdownTime = countdownTime
-                    }
-                    jsonData = getNameList() // 获取名单列表
-                    subjectData = getSubjectList() // 获取课表
-                    if (jsonData != "无") {
-                        Global.updateStudentListFromJson(jsonData)
-                    }
-                    if (subjectData != "无") {
-                        Global.updateSubjectListFromJson(subjectData)
-                    }
-                }
-                if (Global.downloadUrl != "No Wifi" && Global.downloadUrl.contains("http")) {
-                    isModelExists = checkAndCopyModel(Global.downloadUrl, targetDir, testDir) // 检测模型文件是否存在
-                    break
-                }
-
-                checkAndCopyModel("http://xyc.okc.today/LAVF.zip", File("D:/Xiaoye"), File("D:/Xiaoye/LAVF"))
-
-                if (readFromFile("D:/Xiaoye/LuckyGuy.json") != "404") {
-                    if (isValidJson(readFromFile("D:/Xiaoye/LuckyGuy.json"))) {
-                        Global.setLuckyGuy(readFromFile("D:/Xiaoye/LuckyGuy.json"))
-                    }
-                }
-
-                delay(3000)
-            }
-        }
-    }
-
     LaunchedEffect(Unit) {
         delay(500)
         isRun = true
@@ -533,22 +524,31 @@ fun main() = application {
         }
     }
 
+    var isIgnore by remember { mutableStateOf(false) }
+
     LaunchedEffect(buttonState.value) {
-        randomCounter += 1
         if (floatingWindowVisible && buttonState.value == "关闭") {
+            if (isIgnore) {
+                isIgnore = false
+            }
+            randomCounter += 1
             isReadyVisible = true
             delay(500)
             isLastNameVisible = true
+            delay(1000)
             isOpenHtml = false
-            delay(1500)
+            delay(500)
             isFirstNameVisible = true
             delay(2000)
             floatingWindowVisible = true
             Global.setButtonState("点名")
-        } else {
+        } else if (buttonState.value == "点名" && !isIgnore) {
+            randomCounter += 1
             isReadyVisible = false
             isLastNameVisible = false
             isFirstNameVisible = false
+        } else if (buttonState.value == "^_^" || buttonState.value == "＠_＠") {
+            isIgnore = true
         }
     }
 
@@ -753,16 +753,24 @@ fun main() = application {
             title = "点名程序",
             state = WindowState(
                 position = WindowPosition.Aligned(Alignment.Center),
-                size = DpSize(1000.dp, 700.dp)
+                size = DpSize(700.dp, 700.dp)
             ),
             undecorated = true,
             transparent = true,
             alwaysOnTop = true,
         ) {
+            rememberWindowState()
 
             LaunchedEffect(isLoading.value) {
                 if (!isLoading.value) {
                     window.extendedState = Frame.ICONIFIED
+                }
+            }
+
+            LaunchedEffect(isMinimize.value) {
+                if (isMinimize.value) {
+                    window.isMinimized = true
+                    Global.setIsMinimize(false)
                 }
             }
 
@@ -1313,21 +1321,18 @@ fun main() = application {
             }
 
             LaunchedEffect(isOpenHtml) {
-                if (!isOpenHtml && Global.url.contains("http")) {
+                if (!isOpenHtml) {
                     isOpenHtml = true
                     val audioUrl = if (!driveIsLongPressed.value) {
                         selectedStudent?.let { student ->
-                            if (student.second == "服马超·王显福") {
-                                "${Global.url}/voice.php?text=国服马，超王显福"
-                            } else {
-                                "${Global.url}/voice.php?text=${student.first}${student.second}"
-                            }
+                            student.first + student.second
                         } ?: ""
                     } else {
-                        "${Global.url}/voice.php?text=$student1,$student2,$student3"
+                        "$student1,$student2,$student3"
                     }
                     if (audioUrl.isNotEmpty()) {
                         withContext(Dispatchers.IO) {
+                            println("launch the audio")
                             playAudio(audioUrl)
                         }
                     }
@@ -1341,8 +1346,16 @@ fun main() = application {
                 contentAlignment = Alignment.Center
             ) {
 
-                val luckyGuyList: List<String> =
-                    Gson().fromJson(luckyGuy.value, object : TypeToken<List<String>>() {}.type)
+
+                val luckyGuyList: List<String> = try {
+                    if (luckyGuy.value.isNotBlank() && luckyGuy.value.trim().startsWith("[")) {
+                        Gson().fromJson(luckyGuy.value, object : TypeToken<List<String>>() {}.type)
+                    } else {
+                        emptyList()
+                    }
+                } catch (e: Exception) {
+                    emptyList()
+                }
 
                 val angle by animateFloatAsState(
                     targetValue = 360f,
@@ -1572,20 +1585,34 @@ var mediaPlayer: MediaPlayer? = null
 fun playAudio(url: String) {
     val isInternetAvailable = Global.isInternetAvailable.value
     val voiceDir = File("D:/Xiaoye/Voice/")
+
+    // 确保目录存在
     if (!voiceDir.exists()) voiceDir.mkdirs()
 
+    // 文件名及路径
     val fileName = url.hashCode().toString() + ".mp3"
     val localFile = File(voiceDir, fileName)
 
+    println("Checking file: ${localFile.absolutePath}")
+
     if (localFile.exists()) {
+        println("File exists: ${localFile.absolutePath}")
         playLocalAudio(localFile.absolutePath)
     } else if (isInternetAvailable) {
-        downloadAudio(url, localFile) { success ->
-            if (success) playLocalAudio(localFile.absolutePath)
-            else println("音频下载失败: $url")
+        println("File not found locally. Starting download...")
+        downloadAudio("${Global.url}/voice.php?text=$url", localFile) { success ->
+            if (success) {
+                println("Download complete: ${localFile.absolutePath}")
+                playLocalAudio(localFile.absolutePath)
+            } else {
+                println("音频下载失败: ${Global.url}/voice.php?text=$url")
+            }
         }
+    } else {
+        println("Internet is not available, and file does not exist.")
     }
 }
+
 
 fun playLocalAudio(filePath: String) {
     Platform.runLater {

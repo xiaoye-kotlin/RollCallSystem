@@ -9,9 +9,7 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.awt.Desktop
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+import java.io.*
 import java.net.*
 import java.util.*
 import java.util.regex.Pattern
@@ -21,19 +19,29 @@ import javax.crypto.spec.SecretKeySpec
 import javax.swing.JOptionPane
 import kotlin.coroutines.cancellation.CancellationException
 
-fun isInternetAvailable(): Boolean {
-    return try {
-        // 尝试连接百度的服务器
-        val socket = Socket()
-        val socketAddress = InetSocketAddress("baidu.com", 80)
-        socket.connect(socketAddress, 1500)
-        socket.close()
-        Global.setIsInternetAvailable(true)
-        true
-    } catch (e: SocketTimeoutException) {
-        false
-    } catch (e: Exception) {
-        false
+suspend fun isInternetAvailable(): Boolean {
+    val url = "https://sharechain.qq.com/78f70d1dbe37a73b519ea0e099a8a5b2"
+
+    return withContext(Dispatchers.IO) {
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).build()
+
+        try {
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseBody = response.body?.string()
+
+                responseBody?.contains("网络正常")
+
+            } else {
+                false
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            false
+        } catch (_: CancellationException) {
+            false
+        } == true
     }
 }
 
@@ -210,7 +218,7 @@ suspend fun getIsOpen(): String {
     val url = "https://sharechain.qq.com/24611a0b19af84dfd745128cef471194"
 
     if (!isInternetAvailable()) {
-        return "No Wifi"
+        return "true"
     }
 
     return withContext(Dispatchers.IO) {
@@ -737,7 +745,7 @@ fun fetchWebPage(url: String) {
 // AI
 
 private const val AES_KEY = "suannaiqwq3383787570yogurt666ads"
-private val gson = Gson()
+val gson = Gson()
 private val client = OkHttpClient()
 
 fun decryptAES(encrypted: String, key: String = AES_KEY): String {

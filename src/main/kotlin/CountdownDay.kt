@@ -13,16 +13,17 @@ import java.time.temporal.ChronoUnit
 
 
 fun calculateDaysBetweenDates(date1: String, date2: String): Long {
-    // 日期格式
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val formatter = DateTimeFormatter.ofPattern("yyyy-M-d")
 
-    // 解析字符串为 LocalDate
-    val parsedDate1 = LocalDate.parse(date1, formatter)
-    val parsedDate2 = LocalDate.parse(date2, formatter)
+    return try {
+        val parsedDate1 = LocalDate.parse(date1.trim(), formatter)
+        val parsedDate2 = LocalDate.parse(date2.trim(), formatter)
 
-    // 计算天数差异
-    return ChronoUnit.DAYS.between(parsedDate1, parsedDate2).let { days ->
-        if (days < 0) -days else days // 确保返回正值
+        ChronoUnit.DAYS.between(parsedDate1, parsedDate2).let { days ->
+            if (days < 0) -days else days
+        }
+    } catch (e: Exception) {
+        -1L
     }
 }
 
@@ -33,48 +34,50 @@ fun countdownDay() {
     var betweenDates: Long by remember { mutableStateOf(0) }
     betweenDates = calculateDaysBetweenDates(date.value, Global.countdownTime)
 
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        if (betweenDates == 0L) {
-            Text(
-                modifier = Modifier,
-                text = Global.countdownName,
-                fontSize = 25.sp,
-                overflow = TextOverflow.Ellipsis,
-                style = TextStyle(
-                    fontWeight = FontWeight.Bold
-                ),
-            )
-            Text(
-                modifier = Modifier,
-                text = "就是今天！",
-                fontSize = 25.sp,
-                overflow = TextOverflow.Ellipsis
-            )
-        } else {
-            Text(
-                modifier = Modifier,
-                text = "距离${Global.countdownName}还有 ",
-                fontSize = 25.sp,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                modifier = Modifier,
-                text = betweenDates.toString(),
-                fontSize = 25.sp,
-                overflow = TextOverflow.Ellipsis,
-                style = TextStyle(
-                    fontWeight = FontWeight.Bold
-                ),
-            )
-            Text(
-                modifier = Modifier,
-                text = " 天",
-                fontSize = 25.sp,
-                overflow = TextOverflow.Ellipsis
-            )
+    if (betweenDates != -1L) {
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (betweenDates == 0L) {
+                Text(
+                    modifier = Modifier,
+                    text = Global.countdownName,
+                    fontSize = 25.sp,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        fontWeight = FontWeight.Bold
+                    ),
+                )
+                Text(
+                    modifier = Modifier,
+                    text = "就是今天！",
+                    fontSize = 25.sp,
+                    overflow = TextOverflow.Ellipsis
+                )
+            } else {
+                Text(
+                    modifier = Modifier,
+                    text = "距离${Global.countdownName}还有 ",
+                    fontSize = 25.sp,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    modifier = Modifier,
+                    text = betweenDates.toString(),
+                    fontSize = 25.sp,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        fontWeight = FontWeight.Bold
+                    ),
+                )
+                Text(
+                    modifier = Modifier,
+                    text = " 天",
+                    fontSize = 25.sp,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }

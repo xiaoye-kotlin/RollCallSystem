@@ -1,5 +1,8 @@
+import Global.buttonState
 import Global.subjectList
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -13,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -22,9 +27,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import javafx.application.Platform
-import javafx.embed.swing.JFXPanel
-import kotlinx.coroutines.*
+import kotlinx.coroutines.delay
 
 // 自定义倒置三角形形状
 object TriangleShape : Shape {
@@ -50,7 +53,8 @@ object TriangleShape : Shape {
 @Composable
 fun dragWindow() {
 
-    val displayText = Global.buttonState.collectAsState()
+
+    val displayText = buttonState.collectAsState()
     var isClick by remember { mutableStateOf(false) }
     var longPressed by remember { mutableStateOf(false) }
 
@@ -204,12 +208,68 @@ fun dragWindow() {
                     }
                     Spacer(Modifier.height(10.dp))
                 }
+
+                var rotation by remember { mutableStateOf(0f) }
+                var scale by remember { mutableStateOf(1f) }
+
+                val animatedRotation by animateFloatAsState(
+                    targetValue = rotation,
+                    animationSpec = tween(
+                        durationMillis = 1000,
+                        easing = FastOutLinearInEasing
+                    ), label = ""
+                )
+
+                val animatedScale by animateFloatAsState(
+                    targetValue = scale,
+                    animationSpec = tween(
+                        durationMillis = 1000,
+                        easing = FastOutLinearInEasing
+                    ), label = ""
+                )
+
+                var isFirstRun by remember { mutableStateOf(false) }
+
+                LaunchedEffect(Unit) {
+                        while (true) {
+                            if (isFirstRun) {
+
+                                val randomNumber = (1..2).random()
+                                if (randomNumber == 1 && buttonState.value != "关闭") {
+                                    Global.setButtonState("^_^")
+                                    delay(2000)
+                                    if (buttonState.value != "关闭") {
+                                        Global.setButtonState("点名")
+                                    }
+                                } else if (buttonState.value != "关闭") {
+                                    scale = 1.3f
+                                    rotation = 360f
+                                    delay(1200)
+                                    scale = 1f
+                                    rotation = 0f
+                                    delay(1200)
+                                    Global.setButtonState("＠_＠")
+                                    delay(2000)
+                                    if (buttonState.value != "关闭") {
+                                        Global.setButtonState("点名")
+                                    }
+                                }
+                            } else {
+                           isFirstRun = true
+                        }
+                            val randomDelay = (1..10000).random() + 60000
+                            delay(randomDelay.toLong())
+                    }
+                }
+
                 Surface(
                     modifier = Modifier
                         .background(Color.Transparent)
                         .height(100.dp)
                         .width(100.dp)
                         .clip(CircleShape)
+                        .rotate(animatedRotation)
+                        .scale(animatedScale)
                 ) {
                     Box(
                         modifier = Modifier
