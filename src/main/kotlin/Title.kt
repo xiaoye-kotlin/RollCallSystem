@@ -171,29 +171,10 @@ fun title() {
     val isOpen = Global.isOpen.collectAsState()
 
     LaunchedEffect(Unit) {
-        while (!isDownloading && isInternetAvailable()) {
-            withContext(Dispatchers.IO) {
-                println("start to get data")
-
-                if (!tips.contains("1/10") &&
-                    !tips.contains("2/10") &&
-                    !tips.contains("3/10") &&
-                    !tips.contains("4/10") &&
-                    !tips.contains("5/10") &&
-                    !tips.contains("6/10") &&
-                    !tips.contains("7/10") &&
-                    !tips.contains("8/10")
-                ) {
-                    tips = "加载必要数据..."
-                }
-
-                if (isInternetAvailable()) {
-                    deleteFileOrDirectory("D:/Xiaoye/CountDownName.json")
-                    deleteFileOrDirectory("D:/Xiaoye/CountDownTime.json")
-                    Global.setIsOpen(getIsOpen().toBoolean())
-                    if (!isOpen.value) {
-                        exitProcess(0)
-                    }
+        while (!isDownloading) {
+            if (isInternetAvailable()) {
+                withContext(Dispatchers.IO) {
+                    println("start to get data")
 
                     if (!tips.contains("1/10") &&
                         !tips.contains("2/10") &&
@@ -201,46 +182,70 @@ fun title() {
                         !tips.contains("4/10") &&
                         !tips.contains("5/10") &&
                         !tips.contains("6/10") &&
-                        !tips.contains("7/10")
+                        !tips.contains("7/10") &&
+                        !tips.contains("8/10")
                     ) {
-                        tips = "加载必要数据(1/10)"
+                        tips = "加载必要数据..."
                     }
-                    Global.url = getUrl()
 
-                    if (tips == "加载必要数据(1/10)") {
-                        tips = "加载必要数据(2/10)"
-                    }
-                    Global.setIsVoiceIdentify(getIsVoiceIdentifyOpen().toBooleanStrictOrNull() == true)
+                    if (isInternetAvailable()) {
+                        deleteFileOrDirectory("D:/Xiaoye/CountDownName.json")
+                        deleteFileOrDirectory("D:/Xiaoye/CountDownTime.json")
+                        Global.setIsOpen(getIsOpen().toBoolean())
+                        if (!isOpen.value) {
+                            exitProcess(0)
+                        }
 
-                    if (tips == "加载必要数据(2/10)") {
-                        tips = "加载必要数据(3/10)"
-                    }
-                    Global.downloadUrl = getDownloadUrl()
+                        if (!tips.contains("1/10") &&
+                            !tips.contains("2/10") &&
+                            !tips.contains("3/10") &&
+                            !tips.contains("4/10") &&
+                            !tips.contains("5/10") &&
+                            !tips.contains("6/10") &&
+                            !tips.contains("7/10")
+                        ) {
+                            tips = "加载必要数据(1/10)"
+                        }
+                        Global.url = getUrl()
 
-                    if (tips == "加载必要数据(3/10)") {
-                        tips = "加载必要数据(4/10)"
-                    }
-                    Global.timeApi = getTimeApi()
+                        if (tips == "加载必要数据(1/10)") {
+                            tips = "加载必要数据(2/10)"
+                        }
+                        Global.setIsVoiceIdentify(getIsVoiceIdentifyOpen().toBooleanStrictOrNull() == true)
 
-                    if (tips == "加载必要数据(4/10)") {
-                        tips = "加载必要数据(5/10)"
-                    }
-                    Global.countdownName = getCountDownName()
+                        if (tips == "加载必要数据(2/10)") {
+                            tips = "加载必要数据(3/10)"
+                        }
+                        Global.downloadUrl = getDownloadUrl()
 
-                    if (tips == "加载必要数据(5/10)") {
-                        tips = "加载必要数据(6/10)"
-                    }
-                    Global.countdownTime = getCountDownTime()
+                        if (tips == "加载必要数据(3/10)") {
+                            tips = "加载必要数据(4/10)"
+                        }
+                        Global.timeApi = getTimeApi()
 
-                    if (tips == "加载必要数据(6/10)") {
-                        tips = "加载必要数据(7/10)"
+                        if (tips == "加载必要数据(4/10)") {
+                            tips = "加载必要数据(5/10)"
+                        }
+                        Global.countdownName = getCountDownName()
+
+                        if (tips == "加载必要数据(5/10)") {
+                            tips = "加载必要数据(6/10)"
+                        }
+                        Global.countdownTime = getCountDownTime()
+
+                        if (tips == "加载必要数据(6/10)") {
+                            tips = "加载必要数据(7/10)"
+                        }
+                        println("Student read result: ${readFromFile(jsonNameListFilePath)}")
+                        println("Subject read result: ${readFromFile(jsonSubjectListFilePath)}")
+                        println("isInternetAvailable: ${isInternetAvailable.value}")
+                        delay(1000)
+                        if (!isDownloading && tips != "数据不完整,重新尝试...") {
+                            tips = "数据不完整,重新尝试..."
+                        }
                     }
-                    println("Student read result: ${readFromFile(jsonNameListFilePath)}")
-                    println("Subject read result: ${readFromFile(jsonSubjectListFilePath)}")
-                    println("isInternetAvailable: ${isInternetAvailable.value}")
                 }
-
-                // 其他逻辑保持不变...
+            } else {
                 if (!isInternetAvailable() && readFromFile(jsonNameListFilePath) != "404" &&
                     readFromFile(jsonSubjectListFilePath) != "404" &&
                     readFromFile(jsonLuckyGuyFilePath) != "404"
@@ -268,10 +273,6 @@ fun title() {
                         println("Student Data has been written")
                     }
                 }
-            }
-            delay(5000)
-            if (!isDownloading && tips != "数据不完整,重新尝试...") {
-                tips = "数据不完整,重新尝试..."
             }
             delay(1000)
         }

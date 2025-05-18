@@ -31,15 +31,19 @@ suspend fun isInternetAvailable(): Boolean {
             if (response.isSuccessful) {
                 val responseBody = response.body?.string()
 
+                responseBody?.contains("网络正常")?.let { Global.setIsInternetAvailable(it) }
                 responseBody?.contains("网络正常")
 
             } else {
+                Global.setIsInternetAvailable(false)
                 false
             }
         } catch (e: IOException) {
             e.printStackTrace()
+            Global.setIsInternetAvailable(false)
             false
         } catch (_: CancellationException) {
+            Global.setIsInternetAvailable(false)
             false
         } == true
     }

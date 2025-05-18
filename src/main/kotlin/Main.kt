@@ -53,7 +53,7 @@ import kotlin.system.exitProcess
 
 object Global {
     const val VERSION = 17
-    const val CLASS = 1
+    const val CLASS = 3
     var accentColorMain = 0xFFFF5733.toInt()
     var accentColorFloating = 0xFFFF5733.toInt()
     var accentColorNamed = 0xFFFF5733.toInt()
