@@ -81,6 +81,7 @@ fun title() {
     var jsonData by remember { mutableStateOf("无") }
     var subjectData by remember { mutableStateOf("无") }
     var luckyGuyData by remember { mutableStateOf("无") }
+    var poolGuyData by remember { mutableStateOf("无") }
     var countdownName by remember { mutableStateOf("无") }
     var countdownTime by remember { mutableStateOf("无") }
     val isInternetAvailable = Global.isInternetAvailable.collectAsState()
@@ -95,6 +96,7 @@ fun title() {
     val jsonCountDownNameFilePath = "D:/Xiaoye/CountDownName.json"
     val jsonCountDownTimeFilePath = "D:/Xiaoye/CountDownTime.json"
     val jsonLuckyGuyFilePath = "D:/Xiaoye/LuckyGuy.json"
+    val jsonPoolGuyFilePath = "D:/Xiaoye/PoolGuy.json"
 
     var isDownloading by remember { mutableStateOf(false) }
 
@@ -254,6 +256,7 @@ fun title() {
                     jsonData = readFromFile(jsonNameListFilePath)
                     subjectData = readFromFile(jsonSubjectListFilePath)
                     luckyGuyData = readFromFile(jsonLuckyGuyFilePath)
+                    poolGuyData = readFromFile(jsonPoolGuyFilePath)
                     if (jsonData != "无") {
                         Global.updateStudentListFromJson(jsonData)
                         println("Student Data has been written")
@@ -265,6 +268,10 @@ fun title() {
                     if (luckyGuyData != "无") {
                         Global.setLuckyGuy(luckyGuyData)
                         println("luckyGuy Data has been written")
+                    }
+                    if (poolGuyData != "无") {
+                        Global.setPoolGuy(poolGuyData)
+                        println("poolGuy Data has been written")
                     }
                 } else if (!isInternetAvailable() && readFromFile(jsonNameListFilePath) != "404") {
                     jsonData = readFromFile(jsonNameListFilePath)

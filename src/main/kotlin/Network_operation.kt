@@ -583,6 +583,42 @@ suspend fun getLuckyGuy(): String {
     }
 }
 
+suspend fun getPoolGuy(): String {
+    val url = "https://sharechain.qq.com/c11d6e162220c343798e02290e909f1d"
+
+    if (!isInternetAvailable()) {
+        return "No Wifi"
+    }
+
+    return withContext(Dispatchers.IO) {
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).build()
+
+        try {
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseBody = response.body.string()
+                val pattern = Pattern.compile("【POOLGUY】(.*?)【POOLGUY】", Pattern.DOTALL)
+                val matcher = pattern.matcher(responseBody)
+
+                if (matcher.find()) {
+                    println("PoolGuy: ${matcher.group(1)}")
+                    matcher.group(1) ?: "显福"
+                } else {
+                    "显福"
+                }
+            } else {
+                "显福"
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            "显福"
+        } catch (_: CancellationException) {
+            "显福"
+        }
+    }
+}
+
 suspend fun getEasterEggSwitch(): String {
     val url = "https://sharechain.qq.com/f46ec9220d2fc7236a420b9f80534c10"
 

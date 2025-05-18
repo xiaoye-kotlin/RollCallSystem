@@ -13,6 +13,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -172,6 +173,14 @@ object Global {
 
     fun setLuckyGuy(value: String) {
         _luckyGuy.value = value
+    }
+
+    private val _poolGuy = MutableStateFlow("无")
+    val poolGuy: StateFlow<String>
+        get() = _poolGuy
+
+    fun setPoolGuy(value: String) {
+        _poolGuy.value = value
     }
 
     private val _isLongPressed = MutableStateFlow(false)
@@ -366,6 +375,7 @@ fun main() = application {
     val time = Global.time.collectAsState()
     val date = Global.date.collectAsState()
     val luckyGuy = Global.luckyGuy.collectAsState()
+    val poolGuy = Global.poolGuy.collectAsState()
 
     var operating by remember { mutableStateOf(0) }
 
@@ -433,6 +443,26 @@ fun main() = application {
 
                             // 写入文件
                             writeToFile("D:/Xiaoye/LuckyGuy.json", luckyguyJson)
+
+                        } catch (e: Exception) {
+                            // 如果出现异常，打印错误信息并跳过
+                            println("转换失败：${e.message}")
+                        }
+                    }
+
+                    if (getPoolGuy().contains("|")) {
+                        try {
+                            // 将字符串按 `|` 分隔
+                            val items = getPoolGuy().split("|")
+
+                            // 使用 Gson 将拆分后的数据转换为 JSON
+                            val gson = Gson()
+                            val poolGuyJson = gson.toJson(items)
+
+                            Global.setPoolGuy(poolGuyJson)
+
+                            // 写入文件
+                            writeToFile("D:/Xiaoye/PoolGuy.json", poolGuyJson)
 
                         } catch (e: Exception) {
                             // 如果出现异常，打印错误信息并跳过
@@ -1357,6 +1387,16 @@ fun main() = application {
                     emptyList()
                 }
 
+                val poolGuyList: List<String> = try {
+                    if (poolGuy.value.isNotBlank() && poolGuy.value.trim().startsWith("[")) {
+                        Gson().fromJson(poolGuy.value, object : TypeToken<List<String>>() {}.type)
+                    } else {
+                        emptyList()
+                    }
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
                 val angle by animateFloatAsState(
                     targetValue = 360f,
                     animationSpec = infiniteRepeatable(
@@ -1383,6 +1423,12 @@ fun main() = application {
                                 ) {
                                     drawStar(size = 1600f, center = center, rotationAngle = angle)
                                 }
+                            } else if (poolGuyList.contains(it.second)) {
+                                Text(
+                                    text = "🎱",
+                                    fontSize = 650.sp,
+                                    modifier = Modifier.rotate(45f)
+                                )
                             }
                         }
                     }
