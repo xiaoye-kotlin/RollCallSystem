@@ -1,3 +1,5 @@
+package com.rollcall.app.ui.screen
+
 import androidx.compose.runtime.*
 import com.sun.jna.Native
 import com.sun.jna.Pointer
@@ -16,6 +18,7 @@ import java.awt.*
 import java.io.File
 import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
 import com.rollcall.app.state.AppState
+import com.rollcall.app.util.deleteFileOrDirectory
 import javax.swing.JFrame
 
 @Composable

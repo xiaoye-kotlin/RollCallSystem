@@ -1,3 +1,5 @@
+package com.rollcall.app.ui.screen
+
 import com.rollcall.app.state.AppState.isVoiceIdentify
 import com.google.gson.JsonParser
 import com.google.gson.stream.JsonReader

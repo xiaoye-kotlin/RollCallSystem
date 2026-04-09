@@ -1,3 +1,5 @@
+package com.rollcall.app.ui.screen
+
 import com.rollcall.app.data.model.Subject as ModelSubject
 import java.time.Duration
 import java.time.LocalTime

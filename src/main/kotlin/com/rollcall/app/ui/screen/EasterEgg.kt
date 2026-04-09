@@ -1,3 +1,5 @@
+package com.rollcall.app.ui.screen
+
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

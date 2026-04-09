@@ -1,3 +1,5 @@
+package com.rollcall.app.ui.screen
+
 import com.rollcall.app.state.AppState.buttonState
 import com.rollcall.app.state.AppState.subjectList
 import com.rollcall.app.state.AppState

@@ -8,6 +8,12 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+/** Top-level delegates for convenience */
+fun readFromFile(filePath: String): String = FileHelper.readFromFile(filePath)
+fun writeToFile(filePath: String, content: String) = FileHelper.writeToFile(filePath, content)
+fun createDirectory(directoryPath: String) = FileHelper.createDirectory(directoryPath)
+fun deleteFileOrDirectory(filePath: String) = FileHelper.deleteFileOrDirectory(filePath)
+
 /**
  * 文件操作工具类
  * 提供文件的读写、删除、目录创建等操作

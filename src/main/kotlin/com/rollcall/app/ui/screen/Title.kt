@@ -1,3 +1,5 @@
+package com.rollcall.app.ui.screen
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,9 +22,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.Paths
 import com.rollcall.app.network.NetworkHelper
 import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
 import com.rollcall.app.network.NetworkHelper.getCountDownName
@@ -36,47 +35,10 @@ import com.rollcall.app.network.NetworkHelper.getTimeApi
 import com.rollcall.app.network.NetworkHelper.getUrl
 import com.rollcall.app.state.AppState
 import com.rollcall.app.util.FileHelper
+import com.rollcall.app.util.readFromFile
+import com.rollcall.app.util.writeToFile
+import com.rollcall.app.util.deleteFileOrDirectory
 import kotlin.system.exitProcess
-
-fun createDirectory(directoryPath: String) {
-    val path: Path = Paths.get(directoryPath)
-    if (!Files.exists(path)) {
-        Files.createDirectories(path)
-    }
-}
-
-fun writeToFile(filePath: String, content: String) {
-    val directoryPath = File(filePath).parent
-    if (directoryPath != null) {
-        createDirectory(directoryPath)
-    }
-
-    val file = File(filePath)
-    file.writeText(content)
-}
-
-fun readFromFile(filePath: String): String {
-    val file = File(filePath)
-    return if (file.exists()) {
-        file.readText()
-    } else {
-        "404"
-    }
-}
-
-fun deleteFileOrDirectory(filePath: String) {
-    val file = File(filePath)
-
-    if (file.exists()) {
-        if (file.isDirectory) {
-            // 如果是目录，递归删除目录中的所有文件
-            file.listFiles()?.forEach { deleteFileOrDirectory(it.absolutePath) }
-        }
-        file.delete() // 删除文件或目录
-    } else {
-        println("404")
-    }
-}
 
 @Composable
 fun title() {
