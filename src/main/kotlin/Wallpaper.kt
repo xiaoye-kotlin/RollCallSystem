@@ -14,13 +14,15 @@ import javafx.scene.media.MediaView
 import kotlinx.coroutines.*
 import java.awt.*
 import java.io.File
+import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.state.AppState
 import javax.swing.JFrame
 
 @Composable
 fun videoWallpaper() {
 
-    val isWallpaper = Global.isWallpaper.collectAsState()
-    val isDeleteWallpaper = Global.isDeleteWallpaper.collectAsState()
+    val isWallpaper = AppState.isWallpaper.collectAsState()
+    val isDeleteWallpaper = AppState.isDeleteWallpaper.collectAsState()
     val isDownloadSuccessfully = remember { mutableStateOf(false) }
     var downloadVideo by remember { mutableStateOf(false) }
 

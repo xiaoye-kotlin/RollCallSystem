@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.*
 import java.io.File
+import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.state.AppState
 
 fun Modifier.neumorphism(): Modifier = this
     .clip(RoundedCornerShape(32.dp))
@@ -65,7 +67,7 @@ fun Modifier.innerNeumorphism(): Modifier = this
 
 @Composable
 fun alarmClock() {
-    val isAlarmClock = Global.isAlarmClock.collectAsState()
+    val isAlarmClock = AppState.isAlarmClock.collectAsState()
     var isMusicClock by remember { mutableStateOf(false) }
     val remainingSeconds by countdownTimer(totalMinutes = 45)
     val timeText = formatTimeForAlarm(remainingSeconds)
@@ -160,7 +162,7 @@ fun alarmClock() {
 fun countdownTimer(
     totalMinutes: Int
 ): State<Long> {
-    val isAlarmClock = Global.isAlarmClock.collectAsState()
+    val isAlarmClock = AppState.isAlarmClock.collectAsState()
     val totalSeconds = totalMinutes * 60L
     val remaining = remember { mutableStateOf(totalSeconds) }
 
@@ -185,7 +187,7 @@ fun countdownTimer(
             }
 
             controller.playMedia(musicPath) {
-                Global.setIsAlarmHasBeenHeard(true)
+                AppState.setIsAlarmHasBeenHeard(true)
             }
 
             Runtime.getRuntime().addShutdownHook(Thread {

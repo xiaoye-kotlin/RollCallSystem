@@ -1,8 +1,9 @@
+import com.rollcall.app.data.model.Subject as ModelSubject
 import java.time.Duration
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
-fun getNextClassIfDismissalTime(currentTime: String, todaySchedule: List<Subject>?): String? {
+fun getNextClassIfDismissalTime(currentTime: String, todaySchedule: List<ModelSubject>?): String? {
     if (todaySchedule.isNullOrEmpty()) {
         return null
     }

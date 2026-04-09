@@ -53,7 +53,7 @@ dependencies {
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "com.rollcall.app.AppKt"
 
         buildTypes.release {
 

@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import com.rollcall.app.state.AppState
 
 
 fun calculateDaysBetweenDates(date1: String, date2: String): Long {
@@ -30,9 +31,9 @@ fun calculateDaysBetweenDates(date1: String, date2: String): Long {
 @Composable
 fun countdownDay() {
 
-    val date = Global.date.collectAsState()
+    val date = AppState.date.collectAsState()
     var betweenDates: Long by remember { mutableStateOf(0) }
-    betweenDates = calculateDaysBetweenDates(date.value, Global.countdownTime)
+    betweenDates = calculateDaysBetweenDates(date.value, AppState.countdownTime)
 
     if (betweenDates != -1L) {
         Row(
@@ -42,7 +43,7 @@ fun countdownDay() {
             if (betweenDates == 0L) {
                 Text(
                     modifier = Modifier,
-                    text = Global.countdownName,
+                    text = AppState.countdownName,
                     fontSize = 25.sp,
                     overflow = TextOverflow.Ellipsis,
                     style = TextStyle(
@@ -58,7 +59,7 @@ fun countdownDay() {
             } else {
                 Text(
                     modifier = Modifier,
-                    text = "距离${Global.countdownName}还有 ",
+                    text = "距离${AppState.countdownName}还有 ",
                     fontSize = 25.sp,
                     overflow = TextOverflow.Ellipsis
                 )

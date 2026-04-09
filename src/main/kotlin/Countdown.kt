@@ -18,10 +18,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.state.AppState
 
 @Composable
 fun countdown() {
-    val countDownType = Global.countDownType.collectAsState()
+    val countDownType = AppState.countDownType.collectAsState()
     var isRun by remember { mutableStateOf(false) }
     val isDownloadSuccessfully = remember { mutableStateOf(false) }
     var downloadMusic by remember { mutableStateOf(false) }
@@ -78,8 +80,8 @@ fun countdown() {
             }
         }
         if (timeLeft <= 0L) {
-            Global.setCountDownType(0)
-            Global.setButtonState("关闭")
+            AppState.setCountDownType(0)
+            AppState.setButtonState("关闭")
         }
     }
 
@@ -154,7 +156,7 @@ fun countdown() {
             .fillMaxSize(),
         contentAlignment = Alignment.TopEnd // 设置内容对齐方式为右上角
     ) {
-        IconButton(onClick = { Global.setCountDownType(0) }) {
+        IconButton(onClick = { AppState.setCountDownType(0) }) {
             Icon(
                 imageVector = Icons.Default.Close, // 选择图标，这里用的是关闭图标
                 contentDescription = "Close"

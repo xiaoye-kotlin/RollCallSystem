@@ -1,5 +1,6 @@
-import Global.buttonState
-import Global.subjectList
+import com.rollcall.app.state.AppState.buttonState
+import com.rollcall.app.state.AppState.subjectList
+import com.rollcall.app.state.AppState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutLinearInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -59,15 +60,15 @@ fun dragWindow() {
     var longPressed by remember { mutableStateOf(false) }
 
     if (isClick && displayText.value == "点名") {
-        //fetchWebPage(Global.url)
+        //fetchWebPage(AppState.url)
         isClick = false
-        Global.setButtonState("关闭")
+        AppState.setButtonState("关闭")
     }
 
     if (isClick && displayText.value == "关闭") {
         //killProcess("msedge.exe")
         isClick = false
-        Global.setButtonState("点名")
+        AppState.setButtonState("点名")
     }
 
 // 存储协程任务，用来取消之前的协程
@@ -79,11 +80,11 @@ fun dragWindow() {
     ) {
         var subject = ""
 
-        val isChangeFace = Global.isChangeFace.collectAsState()
-        val isTime = Global.isTime.collectAsState()
+        val isChangeFace = AppState.isChangeFace.collectAsState()
+        val isTime = AppState.isTime.collectAsState()
 
-        val week = Global.week.collectAsState()
-        val time = Global.time.collectAsState()
+        val week = AppState.week.collectAsState()
+        val time = AppState.time.collectAsState()
 
         if (isTime.value && week.value != "无" && time.value != "无") {
             val todaySchedule = subjectList[week.value]
@@ -94,10 +95,10 @@ fun dragWindow() {
                 if (nextClass != null) {
                     if (nextClass != "未下课") {
                         subject = nextClass
-                        Global.setIsChangeFace(true)
+                        AppState.setIsChangeFace(true)
                         println("Next Subject is: $nextClass")
                     } else {
-                        Global.setIsChangeFace(false)
+                        AppState.setIsChangeFace(false)
                     }
                 } else {
                     println("No Subject")
@@ -106,7 +107,7 @@ fun dragWindow() {
                 println("No Subject")
             }
         } else {
-            Global.setIsChangeFace(false)
+            AppState.setIsChangeFace(false)
         }
 
         var isAnimated by remember { mutableStateOf(false) }
@@ -132,7 +133,7 @@ fun dragWindow() {
             if (longPressed) {
                 delay(2000)
                 longPressed = false
-                Global.setIsLongPressed(false)
+                AppState.setIsLongPressed(false)
             }
         }
 
@@ -236,10 +237,10 @@ fun dragWindow() {
 
                             val randomNumber = (1..2).random()
                             if (randomNumber == 1 && buttonState.value != "关闭") {
-                                Global.setButtonState("^_^")
+                                AppState.setButtonState("^_^")
                                 delay(3000)
                                 if (buttonState.value != "关闭") {
-                                    Global.setButtonState("点名")
+                                    AppState.setButtonState("点名")
                                 }
                             } else if (buttonState.value != "关闭") {
                                 scale = 1.3f
@@ -249,10 +250,10 @@ fun dragWindow() {
                                 rotation = 0f
                                 delay(1200)
                                 if (buttonState.value != "关闭") {
-                                    Global.setButtonState("＠_＠")
+                                    AppState.setButtonState("＠_＠")
                                     delay(3000)
                                     if (buttonState.value != "关闭") {
-                                        Global.setButtonState("点名")
+                                        AppState.setButtonState("点名")
                                     }
                                 }
                             }
@@ -275,7 +276,7 @@ fun dragWindow() {
                 ) {
                     Box(
                         modifier = Modifier
-                            .background(Color(Global.accentColorFloating))
+                            .background(Color(AppState.accentColorFloating))
                             .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {

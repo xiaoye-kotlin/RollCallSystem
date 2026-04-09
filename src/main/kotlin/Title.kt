@@ -23,6 +23,19 @@ import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import com.rollcall.app.network.NetworkHelper
+import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.network.NetworkHelper.getCountDownName
+import com.rollcall.app.network.NetworkHelper.getCountDownTime
+import com.rollcall.app.network.NetworkHelper.getDownloadUrl
+import com.rollcall.app.network.NetworkHelper.getIsOpen
+import com.rollcall.app.network.NetworkHelper.getIsVoiceIdentifyOpen
+import com.rollcall.app.network.NetworkHelper.getNameList
+import com.rollcall.app.network.NetworkHelper.getSubjectList
+import com.rollcall.app.network.NetworkHelper.getTimeApi
+import com.rollcall.app.network.NetworkHelper.getUrl
+import com.rollcall.app.state.AppState
+import com.rollcall.app.util.FileHelper
 import kotlin.system.exitProcess
 
 fun createDirectory(directoryPath: String) {
@@ -69,24 +82,24 @@ fun deleteFileOrDirectory(filePath: String) {
 fun title() {
     /*
     核心数据：
-    1、全局域名（用于所有url访问的前段部分） - Global.url
-    2、文件下载域名（用于下载语音转文字模型包） - Global.downloadUrl
-    3、程序远程开关（用于远控程序） - Global.isOpen
+    1、全局域名（用于所有url访问的前段部分） - AppState.url
+    2、文件下载域名（用于下载语音转文字模型包） - AppState.downloadUrl
+    3、程序远程开关（用于远控程序） - AppState.isOpen
     4、检测是否存在模型文件包 - isModelExists
     5、获取名单列表（用于点名的名单列表） -  jsonData
     */
     var countdown by remember { mutableStateOf(5) }
     var tips by remember { mutableStateOf("") }
-    val isLoading = Global.isLoading.collectAsState()
+    val isLoading = AppState.isLoading.collectAsState()
     var jsonData by remember { mutableStateOf("无") }
     var subjectData by remember { mutableStateOf("无") }
     var luckyGuyData by remember { mutableStateOf("无") }
     var poolGuyData by remember { mutableStateOf("无") }
     var countdownName by remember { mutableStateOf("无") }
     var countdownTime by remember { mutableStateOf("无") }
-    val isInternetAvailable = Global.isInternetAvailable.collectAsState()
+    val isInternetAvailable = AppState.isInternetAvailable.collectAsState()
     var isModelExists by remember { mutableStateOf(false) }
-    val isVoiceIdentify = Global.isVoiceIdentify.collectAsState()
+    val isVoiceIdentify = AppState.isVoiceIdentify.collectAsState()
 
     val targetDir = File("D:/")
     val testDir = File("D:/vosk-model-small-cn-0.22")
@@ -117,7 +130,7 @@ fun title() {
                     tips = "加载必要数据(8/10)"
                 }
                 while (!isModelExists) {
-                    isModelExists = checkAndCopyModel(Global.downloadUrl, targetDir, testDir)
+                    isModelExists = checkAndCopyModel(AppState.downloadUrl, targetDir, testDir)
                     delay(1000)
                 }
                 println("isModelExists is touched")
@@ -144,13 +157,13 @@ fun title() {
                 }
                 delay(1000)
 
-                Global.updateStudentListFromJson(jsonData)
-                Global.updateSubjectListFromJson(subjectData)
-                countdownName = Global.countdownName
-                countdownTime = Global.countdownTime
+                AppState.updateStudentListFromJson(jsonData)
+                AppState.updateSubjectListFromJson(subjectData)
+                countdownName = AppState.countdownName
+                countdownTime = AppState.countdownTime
                 if (readFromFile("D:/Xiaoye/LuckyGuy.json") != "404") {
-                    if (isValidJson(readFromFile("D:/Xiaoye/LuckyGuy.json"))) {
-                        Global.setLuckyGuy(readFromFile("D:/Xiaoye/LuckyGuy.json"))
+                    if (FileHelper.isValidJson(readFromFile("D:/Xiaoye/LuckyGuy.json"))) {
+                        AppState.setLuckyGuy(readFromFile("D:/Xiaoye/LuckyGuy.json"))
                     }
                 }
                 if (countdown <= 0 && countdownName != "无") {
@@ -164,17 +177,17 @@ fun title() {
                 }
                 if (countdown <= 0 && subjectData != "无") {
                     writeToFile(jsonSubjectListFilePath, subjectData)
-                    Global.setIsLoading(false)
+                    AppState.setIsLoading(false)
                 }
             }
         }
     }
 
-    val isOpen = Global.isOpen.collectAsState()
+    val isOpen = AppState.isOpen.collectAsState()
 
     LaunchedEffect(Unit) {
         while (!isDownloading) {
-            if (isInternetAvailable()) {
+            if (NetworkHelper.isInternetAvailable()) {
                 withContext(Dispatchers.IO) {
                     println("start to get data")
 
@@ -190,10 +203,10 @@ fun title() {
                         tips = "加载必要数据..."
                     }
 
-                    if (isInternetAvailable()) {
+                    if (NetworkHelper.isInternetAvailable()) {
                         deleteFileOrDirectory("D:/Xiaoye/CountDownName.json")
                         deleteFileOrDirectory("D:/Xiaoye/CountDownTime.json")
-                        Global.setIsOpen(getIsOpen().toBoolean())
+                        AppState.setIsOpen(getIsOpen().toBoolean())
                         if (!isOpen.value) {
                             exitProcess(0)
                         }
@@ -208,32 +221,32 @@ fun title() {
                         ) {
                             tips = "加载必要数据(1/10)"
                         }
-                        Global.url = getUrl()
+                        AppState.url = getUrl()
 
                         if (tips == "加载必要数据(1/10)") {
                             tips = "加载必要数据(2/10)"
                         }
-                        Global.setIsVoiceIdentify(getIsVoiceIdentifyOpen().toBooleanStrictOrNull() == true)
+                        AppState.setIsVoiceIdentify(getIsVoiceIdentifyOpen().toBooleanStrictOrNull() == true)
 
                         if (tips == "加载必要数据(2/10)") {
                             tips = "加载必要数据(3/10)"
                         }
-                        Global.downloadUrl = getDownloadUrl()
+                        AppState.downloadUrl = getDownloadUrl()
 
                         if (tips == "加载必要数据(3/10)") {
                             tips = "加载必要数据(4/10)"
                         }
-                        Global.timeApi = getTimeApi()
+                        AppState.timeApi = getTimeApi()
 
                         if (tips == "加载必要数据(4/10)") {
                             tips = "加载必要数据(5/10)"
                         }
-                        Global.countdownName = getCountDownName()
+                        AppState.countdownName = getCountDownName()
 
                         if (tips == "加载必要数据(5/10)") {
                             tips = "加载必要数据(6/10)"
                         }
-                        Global.countdownTime = getCountDownTime()
+                        AppState.countdownTime = getCountDownTime()
 
                         if (tips == "加载必要数据(6/10)") {
                             tips = "加载必要数据(7/10)"
@@ -248,7 +261,7 @@ fun title() {
                     }
                 }
             } else {
-                if (!isInternetAvailable() && readFromFile(jsonNameListFilePath) != "404" &&
+                if (!NetworkHelper.isInternetAvailable() && readFromFile(jsonNameListFilePath) != "404" &&
                     readFromFile(jsonSubjectListFilePath) != "404" &&
                     readFromFile(jsonLuckyGuyFilePath) != "404"
                 ) {
@@ -258,25 +271,25 @@ fun title() {
                     luckyGuyData = readFromFile(jsonLuckyGuyFilePath)
                     poolGuyData = readFromFile(jsonPoolGuyFilePath)
                     if (jsonData != "无") {
-                        Global.updateStudentListFromJson(jsonData)
+                        AppState.updateStudentListFromJson(jsonData)
                         println("Student Data has been written")
                     }
                     if (subjectData != "无") {
-                        Global.updateSubjectListFromJson(subjectData)
+                        AppState.updateSubjectListFromJson(subjectData)
                         println("Subject Data has been written")
                     }
                     if (luckyGuyData != "无") {
-                        Global.setLuckyGuy(luckyGuyData)
+                        AppState.setLuckyGuy(luckyGuyData)
                         println("luckyGuy Data has been written")
                     }
                     if (poolGuyData != "无") {
-                        Global.setPoolGuy(poolGuyData)
+                        AppState.setPoolGuy(poolGuyData)
                         println("poolGuy Data has been written")
                     }
-                } else if (!isInternetAvailable() && readFromFile(jsonNameListFilePath) != "404") {
+                } else if (!NetworkHelper.isInternetAvailable() && readFromFile(jsonNameListFilePath) != "404") {
                     jsonData = readFromFile(jsonNameListFilePath)
                     if (jsonData != "无") {
-                        Global.updateStudentListFromJson(jsonData)
+                        AppState.updateStudentListFromJson(jsonData)
                         println("Student Data has been written")
                     }
                 }
@@ -287,9 +300,9 @@ fun title() {
 
     LaunchedEffect(Unit) {
         while (isInternetAvailable.value) {
-            if ((Global.url != "" && Global.url.contains("http") && Global.timeApi != "" && Global.timeApi.contains(
+            if ((AppState.url != "" && AppState.url.contains("http") && AppState.timeApi != "" && AppState.timeApi.contains(
                     "http"
-                ) && Global.downloadUrl != "" && Global.downloadUrl.contains("http") && isOpen.value)
+                ) && AppState.downloadUrl != "" && AppState.downloadUrl.contains("http") && isOpen.value)
             ) {
                 isDownloading = true
             }
@@ -298,17 +311,17 @@ fun title() {
     }
 
     LaunchedEffect(Unit) {
-        println("Global.url: ${Global.url}, Global.timeApi: ${Global.timeApi}, Global.isOpen: ${Global.isOpen}, isModelExists: $isModelExists, Global.downloadUrl: ${Global.downloadUrl}, isVoiceIdentify: ${isVoiceIdentify.value}")
-        if (!isInternetAvailable()) {
-            Global.setIsInternetAvailable(false)
+        println("AppState.url: ${AppState.url}, AppState.timeApi: ${AppState.timeApi}, AppState.isOpen: ${AppState.isOpen}, isModelExists: $isModelExists, AppState.downloadUrl: ${AppState.downloadUrl}, isVoiceIdentify: ${isVoiceIdentify.value}")
+        if (!NetworkHelper.isInternetAvailable()) {
+            AppState.setIsInternetAvailable(false)
             if (readFromFile(jsonNameListFilePath) != "404" || readFromFile(jsonSubjectListFilePath) != "404") {
                 tips = "当前无网络连接，即将进入离线模式"
                 delay(900)
-                Global.setIsLoading(false)
+                AppState.setIsLoading(false)
             } else {
                 tips = "联网后将自动运行，5秒后最小化程序。"
                 delay(4900)
-                Global.setIsLoading(false)
+                AppState.setIsLoading(false)
             }
         }
     }
@@ -328,7 +341,7 @@ fun title() {
         ) {
             IconButton(
                 modifier = Modifier,
-                onClick = { Global.setIsMinimize(true) }) {
+                onClick = { AppState.setIsMinimize(true) }) {
                 Icon(
                     modifier = Modifier
                         .size(36.dp),

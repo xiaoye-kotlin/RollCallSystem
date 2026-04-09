@@ -26,6 +26,8 @@ import java.awt.Toolkit
 import java.io.File
 import javax.imageio.ImageIO
 import javax.swing.JFrame
+import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.state.AppState
 
 class JfxComponentController {
     private lateinit var mediaPlayer: MediaPlayer
@@ -102,7 +104,7 @@ fun easterEgg() {
             delay(50000)
             hasBeenPlayed.value = true
             isRun = false
-            Global.setIsEasterEgg(false)
+            AppState.setIsEasterEgg(false)
         }
 
 
@@ -224,7 +226,7 @@ fun classIdentity() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            "高2026届${Global.CLASS}班".forEach { char ->
+            "高2026届${AppState.CLASS}班".forEach { char ->
                 Text(
                     text = char.toString(),  // 每个字符单独显示
                     fontSize = 50.sp, // 字体大小
