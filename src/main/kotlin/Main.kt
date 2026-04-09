@@ -247,6 +247,30 @@ object Global {
         _isMinimize.value = value
     }
 
+    private val _isLearning = MutableStateFlow(false)
+    val isLearning: StateFlow<Boolean>
+        get() = _isLearning
+
+    fun setIsLearning(value: Boolean) {
+        _isLearning.value = value
+    }
+
+    private val _isAlarmClock = MutableStateFlow(false)
+    val isAlarmClock: StateFlow<Boolean>
+        get() = _isAlarmClock
+
+    fun setIsAlarmClock(value: Boolean) {
+        _isAlarmClock.value = value
+    }
+
+    private val _isAlarmHasBeenHeard = MutableStateFlow(false)
+    val isAlarmHasBeenHeard: StateFlow<Boolean>
+        get() = _isAlarmHasBeenHeard
+
+    fun setIsAlarmHasBeenHeard(value: Boolean) {
+        _isAlarmHasBeenHeard.value = value
+    }
+
     private val recentStudents = ArrayDeque<Student>()
     private const val MAX_RECENT_STUDENTS = 30
 
@@ -317,13 +341,15 @@ fun isValidJson(jsonString: String): Boolean {
     }
 }
 
+private val recordGson = Gson()
+
 fun recordAttendance(studentName: String) {
     val filePath = "D:/Xiaoye/StatisticalData.json"
     val jsonData = readFromFile(filePath)
 
     val type = object : TypeToken<MutableMap<String, Int>>() {}.type
     val dataMap: MutableMap<String, Int> = if (jsonData != "404") {
-        gson.fromJson(jsonData, type)
+        recordGson.fromJson(jsonData, type)
     } else {
         mutableMapOf()
     }
@@ -332,7 +358,7 @@ fun recordAttendance(studentName: String) {
     dataMap[studentName] = (dataMap[studentName] ?: 0) + 1
 
     // 写回文件
-    val newJson = gson.toJson(dataMap)
+    val newJson = recordGson.toJson(dataMap)
     writeToFile(filePath, newJson)
 }
 
