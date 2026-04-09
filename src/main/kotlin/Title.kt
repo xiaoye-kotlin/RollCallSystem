@@ -65,6 +65,16 @@ fun deleteFileOrDirectory(filePath: String) {
     }
 }
 
+const val JSON_COUNTDOWN_NAME_PATH = "D:/Xiaoye/CountDownName.json"
+const val JSON_COUNTDOWN_TIME_PATH = "D:/Xiaoye/CountDownTime.json"
+
+fun loadCountdownFromCache() {
+    val localName = readFromFile(JSON_COUNTDOWN_NAME_PATH)
+    val localTime = readFromFile(JSON_COUNTDOWN_TIME_PATH)
+    Global.countdownName = if (localName != "404") localName else "高考"
+    Global.countdownTime = if (localTime != "404") localTime else "2026-6-7"
+}
+
 @Composable
 fun title() {
     /*
@@ -93,8 +103,8 @@ fun title() {
 
     val jsonNameListFilePath = "D:/Xiaoye/NameList.json"
     val jsonSubjectListFilePath = "D:/Xiaoye/SubjectList.json"
-    val jsonCountDownNameFilePath = "D:/Xiaoye/CountDownName.json"
-    val jsonCountDownTimeFilePath = "D:/Xiaoye/CountDownTime.json"
+    val jsonCountDownNameFilePath = JSON_COUNTDOWN_NAME_PATH
+    val jsonCountDownTimeFilePath = JSON_COUNTDOWN_TIME_PATH
     val jsonLuckyGuyFilePath = "D:/Xiaoye/LuckyGuy.json"
     val jsonPoolGuyFilePath = "D:/Xiaoye/PoolGuy.json"
 
@@ -191,8 +201,6 @@ fun title() {
                     }
 
                     if (isInternetAvailable()) {
-                        deleteFileOrDirectory("D:/Xiaoye/CountDownName.json")
-                        deleteFileOrDirectory("D:/Xiaoye/CountDownTime.json")
                         Global.setIsOpen(getIsOpen().toBoolean())
                         if (!isOpen.value) {
                             exitProcess(0)
@@ -229,11 +237,13 @@ fun title() {
                             tips = "加载必要数据(5/10)"
                         }
                         Global.countdownName = getCountDownName()
+                        writeToFile(jsonCountDownNameFilePath, Global.countdownName)
 
                         if (tips == "加载必要数据(5/10)") {
                             tips = "加载必要数据(6/10)"
                         }
                         Global.countdownTime = getCountDownTime()
+                        writeToFile(jsonCountDownTimeFilePath, Global.countdownTime)
 
                         if (tips == "加载必要数据(6/10)") {
                             tips = "加载必要数据(7/10)"
@@ -280,6 +290,7 @@ fun title() {
                         println("Student Data has been written")
                     }
                 }
+                loadCountdownFromCache()
             }
             delay(1000)
         }
@@ -301,6 +312,7 @@ fun title() {
         println("Global.url: ${Global.url}, Global.timeApi: ${Global.timeApi}, Global.isOpen: ${Global.isOpen}, isModelExists: $isModelExists, Global.downloadUrl: ${Global.downloadUrl}, isVoiceIdentify: ${isVoiceIdentify.value}")
         if (!isInternetAvailable()) {
             Global.setIsInternetAvailable(false)
+            loadCountdownFromCache()
             if (readFromFile(jsonNameListFilePath) != "404" || readFromFile(jsonSubjectListFilePath) != "404") {
                 tips = "当前无网络连接，即将进入离线模式"
                 delay(900)
