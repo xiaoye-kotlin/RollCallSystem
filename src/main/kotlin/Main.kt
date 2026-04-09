@@ -492,10 +492,7 @@ fun main() = application {
                         }
                     }
                 } else {
-                    val localName = readFromFile("D:/Xiaoye/CountDownName.json")
-                    val localTime = readFromFile("D:/Xiaoye/CountDownTime.json")
-                    Global.countdownName = if (localName != "404") localName else "高考"
-                    Global.countdownTime = if (localTime != "404") localTime else "2026-6-7"
+                    loadCountdownFromCache()
                     Global.setIsCountDownDayOpen(true)
                     Global.setDate(LocalDate.now().toString())
                 }
