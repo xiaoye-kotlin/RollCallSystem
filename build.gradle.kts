@@ -22,9 +22,7 @@ dependencies {
     // With compose.desktop.common you will also lose @Preview functionality
     implementation(compose.desktop.currentOs)
 
-    implementation("net.sourceforge.tess4j:tess4j:5.8.0")
-    implementation("com.asprise.ocr:java-ocr-api:15.3.0.3")
-
+    // RapidOCR - 纯Java本地OCR引擎，无需安装外部程序
     implementation("io.github.mymonstercat:rapidocr:0.0.7")
     implementation("io.github.mymonstercat:rapidocr-onnx-platform:0.0.7")
     implementation("io.github.mymonstercat:rapidocr-ncnn-platform:0.0.7")

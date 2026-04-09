@@ -1,85 +1,56 @@
 import io.github.mymonstercat.Model
 import io.github.mymonstercat.ocr.InferenceEngine
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.File
-import java.nio.charset.Charset
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
 
-fun downloadEnglishLanguagePack() {
-    val client = OkHttpClient()
-    val request = Request.Builder()
-        .url("https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata")
-        .build()
-
-    try {
-        println("Downloading languagePack...")
-
-        client.newCall(request).execute().use { response ->
-            if (response.isSuccessful) {
-                response.body.byteStream().use { inputStream ->
-                    val outputPath = Paths.get("D:\\Xiaoye\\Tesseract-OCR\\tessdata\\eng.traineddata")
-                    Files.createDirectories(outputPath.parent)
-                    Files.copy(inputStream, outputPath, StandardCopyOption.REPLACE_EXISTING)
-                }
-                println("Has Downloaded trainedData")
-            } else {
-                println("Err to Download trainedData, status code: ${response.code}")
-            }
-        }
-    } catch (e: Exception) {
-        println("Err to Download trainedData: ${e.message}")
-    }
-}
-
+/**
+ * OCR识别工具类
+ * 使用RapidOCR（基于ONNX/NCNN）进行本地OCR识别
+ * 不依赖外部安装的Tesseract，解决学校电脑闪退问题
+ */
 class OcrHelper {
-    private val engine: InferenceEngine by lazy {
-        InferenceEngine.getInstance(Model.NCNN_PPOCR_V3)
-    }
-
-    private val tesseractPath = "D:/OCR/tesseract.exe"
-    private val language = "chi_sim+eng"
 
     /**
-     * 通过命令行调用 tesseract.exe
-     */
-    private fun recognizeByCmd(imagePath: String): String {
-        val process = ProcessBuilder(
-            tesseractPath,
-            imagePath,
-            "stdout",
-            "-l",
-            language
-        )
-            .redirectErrorStream(true) // 合并 stderr，防止阻塞
-            .start()
-
-        return process.inputStream
-            .bufferedReader(Charset.forName("UTF-8"))
-            .readText()
-            .trim()
-    }
-
-    /**
-     * 对外统一接口（和你原来的一样）
+     * 使用RapidOCR进行图片文字识别
+     * RapidOCR是纯Java实现，打包进项目中，无需安装任何外部程序
+     * 支持中英文混合识别
      */
     fun recognizeImage(imageFile: File): String {
         return try {
-            recognizeByCmd(imageFile.absolutePath)
+            // 使用RapidOCR的ONNX引擎进行识别（兼容性最好，不依赖系统环境）
+            val engine = InferenceEngine.getInstance(Model.ONNX_PPOCR_V3)
+            val result = engine.runOcr(imageFile.absolutePath)
+
+            // 提取识别结果文本
+            if (result != null && result.strRes != null && result.strRes.isNotEmpty()) {
+                result.strRes.trim()
+            } else {
+                ""
+            }
         } catch (e: Exception) {
-            "识别失败: ${e.message}"
+            println("RapidOCR识别失败: ${e.message}")
+            e.printStackTrace()
+            // 如果ONNX引擎失败，尝试使用NCNN引擎作为备选方案
+            try {
+                val fallbackEngine = InferenceEngine.getInstance(Model.NCNN_PPOCR_V3)
+                val fallbackResult = fallbackEngine.runOcr(imageFile.absolutePath)
+                if (fallbackResult != null && fallbackResult.strRes != null && fallbackResult.strRes.isNotEmpty()) {
+                    fallbackResult.strRes.trim()
+                } else {
+                    ""
+                }
+            } catch (e2: Exception) {
+                println("NCNN备选引擎也失败: ${e2.message}")
+                "识别失败: ${e.message}"
+            }
         } finally {
-            // 无论成功还是失败，都尝试删除图片
+            // 无论成功还是失败，都尝试删除临时图片
             try {
                 if (imageFile.exists()) {
                     imageFile.delete()
                 }
             } catch (_: Exception) {
-                // 删除失败直接忽略，避免影响 OCR 结果
+                // 删除失败直接忽略，避免影响OCR结果
             }
         }
     }
-
 }
