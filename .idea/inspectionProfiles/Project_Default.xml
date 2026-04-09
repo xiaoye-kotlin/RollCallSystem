@@ -34,9 +34,11 @@
           <option value="http://www.thymeleaf.org" />
           <option value="http://www.w3.org/" />
           <option value="http://xmlns.jcp.org/" />
+          <option value="http://xy.wsmlbe.cn" />
           <option value="http://xyc.okc.today" />
         </list>
       </option>
     </inspection_tool>
+    <inspection_tool class="KotlinConstantConditions" enabled="false" level="WARNING" enabled_by_default="false" />
   </profile>
 </component>

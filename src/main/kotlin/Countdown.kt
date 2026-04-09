@@ -30,7 +30,7 @@ fun countdown() {
         withContext(Dispatchers.IO) {
             while (!downloadMusic) {
                 downloadMusic = checkAndCopyModel(
-                    "http://xyc.okc.today/Countdown.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/Countdown/")
+                    "http://xy.wsmlbe.cn/Countdown.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/Countdown/")
                 )
                 if (downloadMusic) {
                     isDownloadSuccessfully.value = true

@@ -1,21 +1,16 @@
-import com.google.gson.Gson
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.awt.Desktop
-import java.io.*
-import java.net.*
-import java.util.*
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.net.URI
+import java.net.URISyntaxException
+import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.zip.ZipInputStream
-import javax.crypto.Cipher
-import javax.crypto.spec.SecretKeySpec
 import javax.swing.JOptionPane
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -29,10 +24,10 @@ suspend fun isInternetAvailable(): Boolean {
         try {
             val response = client.newCall(request).execute()
             if (response.isSuccessful) {
-                val responseBody = response.body?.string()
+                val responseBody = response.body.string()
 
-                responseBody?.contains("网络正常")?.let { Global.setIsInternetAvailable(it) }
-                responseBody?.contains("网络正常")
+                responseBody.contains("网络正常").let { Global.setIsInternetAvailable(it) }
+                responseBody.contains("网络正常")
 
             } else {
                 Global.setIsInternetAvailable(false)
@@ -73,85 +68,136 @@ suspend fun getOnline(): String {
     }
 }
 
-fun checkAndCopyModel(url: String, targetDir: File, testDir: File): Boolean {
-    // Log: Checking test directory
-    println("\"download\" Checking testDir: ${testDir.absolutePath}")
+// 检查是否应该跳过下载
+private fun shouldSkipDownload(testDir: File, targetDir: File): Boolean {
+    // 检查 testDir 是否存在且不为空
+    val testDirValid = testDir.exists() && testDir.list()?.isNotEmpty() == true
 
-    // 检测 testDir 是否存在且不为空
-    if (testDir.exists() && testDir.list()?.isNotEmpty() == true) {
-        println("\"download\" testDir is not empty, skipping download")
-        return true // 目录存在且有内容，直接返回 true
+    // 检查 targetDir 是否存在且不为空（作为备用检查）
+    val targetDirValid = targetDir.exists() && targetDir.list()?.isNotEmpty() == true
+
+    return testDirValid || targetDirValid
+}
+
+// 验证下载是否真的成功
+private fun verifyDownloadSuccess(targetDir: File): Boolean {
+    return try {
+        val files = targetDir.walkTopDown().filter { it.isFile }.toList()
+        println("\"download\" Verification: Found ${files.size} files in target directory")
+        files.isNotEmpty() // 如果目录中有文件，认为下载成功
+    } catch (e: Exception) {
+        println("\"download\" Verification failed: ${e.message}")
+        false
+    }
+}
+
+fun checkAndCopyModel(url: String, targetDir: File, testDir: File): Boolean {
+
+    // ✅ 1. 先检查 testDir 是否存在且有内容
+    if (testDir.exists() && testDir.isDirectory) {
+        val files = testDir.listFiles()
+        if (!files.isNullOrEmpty()) {
+            println("\"download\" testDir already exists and is not empty, skip download")
+            return true
+        }
     }
 
-    val client = OkHttpClient()
+    // 创建带有超时设置的 OkHttpClient
+    val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
     val request = Request.Builder().url(url).build()
 
     return try {
-        // Log: Starting file download
         println("\"download\" Starting file download from: $url")
 
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Unexpected code $response")
-
-            // Log: Download successful
-            println("\"download\" Download successful, preparing to extract the file")
-
-            // 创建目标目录（如果不存在）
-            if (targetDir.mkdirs()) {
-                println("\"download\" Created target directory: ${targetDir.absolutePath}")
-            } else {
-                println("\"download\" Target directory already exists: ${targetDir.absolutePath}")
+            if (!response.isSuccessful) {
+                throw IOException("Unexpected code $response - ${response.message}")
             }
 
-            // 解压 ZIP 文件
-            response.body.byteStream().let {
-                ZipInputStream(it).use { zip ->
-                    var entry = zip.nextEntry
-                    while (entry != null) {
-                        println("\"download\" Found entry: ${entry.name}, isDirectory: ${entry.isDirectory}")
-                        val file = File(targetDir, entry.name)
-                        if (entry.isDirectory) {
-                            if (file.mkdirs()) {
-                                println("\"download\" Created directory: ${file.absolutePath}")
+            println("\"download\" Download successful")
+
+            // 创建目标目录（如果不存在）
+            targetDir.mkdirs()
+
+            val contentLength = response.body.contentLength()
+            if (contentLength > 0) {
+                println("\"download\" File size: ${contentLength / 1024 / 1024} MB")
+            }
+
+            val fileName = getFileNameFromUrl(url)
+            val outputFile = File(targetDir, fileName)
+
+            val isZipFile = fileName.endsWith(".zip", ignoreCase = true) ||
+                    url.endsWith(".zip", ignoreCase = true)
+
+            if (isZipFile) {
+                println("\"download\" Detected ZIP file, extracting...")
+                response.body.byteStream().use { inputStream ->
+                    ZipInputStream(inputStream).use { zip ->
+                        var entry = zip.nextEntry
+                        var fileCount = 0
+                        while (entry != null) {
+                            fileCount++
+                            val file = File(targetDir, entry.name)
+                            if (entry.isDirectory) {
+                                file.mkdirs()
                             } else {
-                                println("\"download\" Directory already exists: ${file.absolutePath}")
+                                file.parentFile?.mkdirs()
+                                FileOutputStream(file).use { fos ->
+                                    zip.copyTo(fos)
+                                }
                             }
-                        } else {
-                            file.parentFile.mkdirs() // 创建父目录
-                            println("\"download\" Writing file: ${file.absolutePath}")
-                            FileOutputStream(file).use { fos ->
-                                zip.copyTo(fos)
-                            }
+                            entry = zip.nextEntry
                         }
-                        entry = zip.nextEntry
+                        println("\"download\" Total files extracted: $fileCount")
+                    }
+                }
+            } else {
+                println("\"download\" Detected non-ZIP file, saving directly")
+                response.body.byteStream().use { inputStream ->
+                    FileOutputStream(outputFile).use { outputStream ->
+                        inputStream.copyTo(outputStream)
                     }
                 }
             }
 
-            // Log: File extraction completed successfully
-            println("\"download\" File extraction completed successfully")
-
-            // 打印解压后的文件列表
-            targetDir.walkTopDown().forEach { file ->
-                println("\"download\" Extracted file: ${file.absolutePath}")
-            }
-            true // 解压成功
+            println("\"download\" Processing completed successfully")
+            true
         }
     } catch (e: Exception) {
-        // Log: Exception occurred
         println("\"download\" An error occurred: ${e.message}")
-        e.printStackTrace() // 打印异常信息以便调试
-        false // 下载或解压失败
+        false
     }
 }
 
+// 从 URL 中提取文件名
+private fun getFileNameFromUrl(url: String): String {
+    return try {
+        // 从 URL 路径中获取文件名
+        val path = URI(url).path
+        if (path.isNotEmpty()) {
+            val fileName = path.substringAfterLast('/')
+            if (fileName.isNotEmpty()) {
+                return fileName
+            }
+        }
+        // 如果无法从 URL 获取文件名，使用默认名称
+        "downloaded_file"
+    } catch (e: Exception) {
+        // 如果 URL 解析失败，使用默认名称
+        "downloaded_file"
+    }
+}
 
 suspend fun getDownloadUrl(): String {
     val url = "https://sharechain.qq.com/639ed2d6e00210eb5a61af91ade279c4"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -185,9 +231,7 @@ suspend fun getDownloadUrl(): String {
 suspend fun getUrl(): String {
     val url = "https://sharechain.qq.com/24611a0b19af84dfd745128cef471194"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -257,9 +301,7 @@ suspend fun getIsOpen(): String {
 suspend fun getIsVoiceIdentifyOpen(): String {
     val url = "https://sharechain.qq.com/24611a0b19af84dfd745128cef471194"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -293,9 +335,7 @@ suspend fun getIsVoiceIdentifyOpen(): String {
 suspend fun getIsTimeOpen(): String {
     val url = "https://sharechain.qq.com/24611a0b19af84dfd745128cef471194"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -442,9 +482,7 @@ suspend fun getSubjectList(): String {
 suspend fun getCountDownDaySwitch(): String {
     val url = "https://sharechain.qq.com/d366c62ba7bb571c430ad1617a7ef037"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -478,9 +516,7 @@ suspend fun getCountDownDaySwitch(): String {
 suspend fun getCountDownName(): String {
     val url = "https://sharechain.qq.com/a94ef650a54e7cc5db49996ebf02865c"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -514,9 +550,7 @@ suspend fun getCountDownName(): String {
 suspend fun getCountDownTime(): String {
     val url = "https://sharechain.qq.com/a94ef650a54e7cc5db49996ebf02865c"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -550,9 +584,7 @@ suspend fun getCountDownTime(): String {
 suspend fun getLuckyGuy(): String {
     val url = "https://sharechain.qq.com/d366c62ba7bb571c430ad1617a7ef037"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -586,9 +618,7 @@ suspend fun getLuckyGuy(): String {
 suspend fun getPoolGuy(): String {
     val url = "https://sharechain.qq.com/c11d6e162220c343798e02290e909f1d"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -622,9 +652,7 @@ suspend fun getPoolGuy(): String {
 suspend fun getEasterEggSwitch(): String {
     val url = "https://sharechain.qq.com/f46ec9220d2fc7236a420b9f80534c10"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -658,9 +686,7 @@ suspend fun getEasterEggSwitch(): String {
 suspend fun getCountDownSwitch(): String {
     val url = "https://sharechain.qq.com/f46ec9220d2fc7236a420b9f80534c10"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -694,9 +720,7 @@ suspend fun getCountDownSwitch(): String {
 suspend fun getWallpaperSwitch(): String {
     val url = "https://sharechain.qq.com/f46ec9220d2fc7236a420b9f80534c10"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -730,9 +754,7 @@ suspend fun getWallpaperSwitch(): String {
 suspend fun getDeleteWallpaperSwitch(): String {
     val url = "https://sharechain.qq.com/f46ec9220d2fc7236a420b9f80534c10"
 
-    if (!isInternetAvailable()) {
-        return "No Wifi"
-    }
+
 
     return withContext(Dispatchers.IO) {
         val client = OkHttpClient()
@@ -763,6 +785,75 @@ suspend fun getDeleteWallpaperSwitch(): String {
     }
 }
 
+suspend fun getLearningSwitch(): String {
+    val url = "https://sharechain.qq.com/f46ec9220d2fc7236a420b9f80534c10"
+
+
+
+    return withContext(Dispatchers.IO) {
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).build()
+
+        try {
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseBody = response.body.string()
+                val pattern = Pattern.compile("【ISLEARNING】(.*?)【ISLEARNING】", Pattern.DOTALL)
+                val matcher = pattern.matcher(responseBody)
+
+                if (matcher.find()) {
+                    println("IsLearning: ${matcher.group(1)}")
+                    matcher.group(1) ?: "false"
+                } else {
+                    "false"
+                }
+            } else {
+                "false"
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            "false"
+        } catch (_: CancellationException) {
+            "false"
+        }
+    }
+}
+
+suspend fun getAlarmClock(): String {
+    val url = "https://sharechain.qq.com/f46ec9220d2fc7236a420b9f80534c10"
+
+
+
+    return withContext(Dispatchers.IO) {
+        val client = OkHttpClient()
+        val request = Request.Builder().url(url).build()
+
+        try {
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseBody = response.body.string()
+                val pattern = Pattern.compile("【ISALARMCLOCK】(.*?)【ISALARMCLOCK】", Pattern.DOTALL)
+                val matcher = pattern.matcher(responseBody)
+
+                if (matcher.find()) {
+                    println("ISALARMCLOCK: ${matcher.group(1)}")
+                    matcher.group(1) ?: "false"
+                } else {
+                    "false"
+                }
+            } else {
+                "false"
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            "false"
+        } catch (_: CancellationException) {
+            "false"
+        }
+    }
+}
+
+
 fun fetchWebPage(url: String) {
     // 尝试打开 URL
     try {
@@ -782,7 +873,7 @@ fun fetchWebPage(url: String) {
 }
 
 
-// AI
+/*// AI
 
 private const val AES_KEY = "suannaiqwq3383787570yogurt666ads"
 val gson = Gson()
@@ -845,4 +936,4 @@ fun sendRequestAsync(msg: String, callback: (String?) -> Unit) {
             callback(null)
         }
     }.start()
-}
+}*/

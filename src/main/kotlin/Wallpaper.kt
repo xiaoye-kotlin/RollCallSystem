@@ -29,7 +29,7 @@ fun videoWallpaper() {
             withContext(Dispatchers.IO) {
                 while (!downloadVideo) {
                     downloadVideo = checkAndCopyModel(
-                        "http://xyc.okc.today/Wallpaper.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/Wallpaper/")
+                        "http://xy.wsmlbe.cn/Wallpaper.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/Wallpaper/")
                     )
                     if (downloadVideo) {
                         isDownloadSuccessfully.value = true

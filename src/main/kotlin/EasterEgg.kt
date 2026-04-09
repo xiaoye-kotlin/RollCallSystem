@@ -26,10 +26,8 @@ import java.awt.Toolkit
 import java.io.File
 import javax.imageio.ImageIO
 import javax.swing.JFrame
-import javax.swing.JPanel
 
 class JfxComponentController {
-    val panel: JPanel = JPanel()
     private lateinit var mediaPlayer: MediaPlayer
 
     init {
@@ -37,16 +35,24 @@ class JfxComponentController {
         JFXPanel() // 必须初始化 JavaFX 环境
     }
 
-    fun playMedia(filePath: String) {
-        val media = Media(File(filePath).toURI().toString()) // 本地文件路径
-        mediaPlayer = MediaPlayer(media)
-        mediaPlayer.play()
+    fun playMedia(
+        filePath: String,
+        onFinished: (() -> Unit)? = null
+    ) {
+        val media = Media(File(filePath).toURI().toString())
+        mediaPlayer = MediaPlayer(media).apply {
+
+            setOnEndOfMedia {
+                println("音乐播放完毕")
+                onFinished?.invoke()
+            }
+
+            play()
+        }
     }
 
     fun stopMedia() {
-        if (::mediaPlayer.isInitialized) {
-            mediaPlayer.stop()
-        }
+        mediaPlayer.stop()
     }
 }
 
@@ -61,7 +67,7 @@ fun easterEgg() {
         withContext(Dispatchers.IO) {
             while (!downloadMusic) {
                 downloadMusic = checkAndCopyModel(
-                    "http://xyc.okc.today/EasterEgg2.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/EasterEgg/")
+                    "http://xy.wsmlbe.cn/EasterEgg2.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/EasterEgg/")
                 )
                 if (downloadMusic) {
                     isDownloadSuccessfully.value = true

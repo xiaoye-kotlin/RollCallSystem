@@ -231,34 +231,36 @@ fun dragWindow() {
                 var isFirstRun by remember { mutableStateOf(false) }
 
                 LaunchedEffect(Unit) {
-                        while (true) {
-                            if (isFirstRun) {
+                    while (true) {
+                        if (isFirstRun) {
 
-                                val randomNumber = (1..2).random()
-                                if (randomNumber == 1 && buttonState.value != "关闭") {
-                                    Global.setButtonState("^_^")
-                                    delay(2000)
-                                    if (buttonState.value != "关闭") {
-                                        Global.setButtonState("点名")
-                                    }
-                                } else if (buttonState.value != "关闭") {
-                                    scale = 1.3f
-                                    rotation = 360f
-                                    delay(1200)
-                                    scale = 1f
-                                    rotation = 0f
-                                    delay(1200)
+                            val randomNumber = (1..2).random()
+                            if (randomNumber == 1 && buttonState.value != "关闭") {
+                                Global.setButtonState("^_^")
+                                delay(3000)
+                                if (buttonState.value != "关闭") {
+                                    Global.setButtonState("点名")
+                                }
+                            } else if (buttonState.value != "关闭") {
+                                scale = 1.3f
+                                rotation = 360f
+                                delay(1200)
+                                scale = 1f
+                                rotation = 0f
+                                delay(1200)
+                                if (buttonState.value != "关闭") {
                                     Global.setButtonState("＠_＠")
-                                    delay(2000)
+                                    delay(3000)
                                     if (buttonState.value != "关闭") {
                                         Global.setButtonState("点名")
                                     }
                                 }
-                            } else {
-                           isFirstRun = true
+                            }
+                        } else {
+                            isFirstRun = true
                         }
-                            val randomDelay = (1..10000).random() + 60000
-                            delay(randomDelay.toLong())
+                        val randomDelay = (1..10000).random() + 60000
+                        delay(randomDelay.toLong())
                     }
                 }
 
