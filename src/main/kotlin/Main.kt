@@ -42,7 +42,6 @@ import java.io.File
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.time.LocalDate
 import javax.imageio.ImageIO
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
@@ -491,10 +490,6 @@ fun main() = application {
                             }
                         }
                     }
-                } else {
-                    loadCountdownFromCache()
-                    Global.setIsCountDownDayOpen(true)
-                    Global.setDate(LocalDate.now().toString())
                 }
 
                 delay(3000)
