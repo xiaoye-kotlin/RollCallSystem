@@ -42,6 +42,7 @@ import java.io.File
 import java.net.URI
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.time.LocalDate
 import javax.imageio.ImageIO
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
@@ -490,6 +491,13 @@ fun main() = application {
                             }
                         }
                     }
+                } else {
+                    val localName = readFromFile("D:/Xiaoye/CountDownName.json")
+                    val localTime = readFromFile("D:/Xiaoye/CountDownTime.json")
+                    Global.countdownName = if (localName != "404") localName else "高考"
+                    Global.countdownTime = if (localTime != "404") localTime else "2026-6-7"
+                    Global.setIsCountDownDayOpen(true)
+                    Global.setDate(LocalDate.now().toString())
                 }
 
                 delay(3000)

@@ -191,8 +191,6 @@ fun title() {
                     }
 
                     if (isInternetAvailable()) {
-                        deleteFileOrDirectory("D:/Xiaoye/CountDownName.json")
-                        deleteFileOrDirectory("D:/Xiaoye/CountDownTime.json")
                         Global.setIsOpen(getIsOpen().toBoolean())
                         if (!isOpen.value) {
                             exitProcess(0)
@@ -229,11 +227,13 @@ fun title() {
                             tips = "加载必要数据(5/10)"
                         }
                         Global.countdownName = getCountDownName()
+                        writeToFile(jsonCountDownNameFilePath, Global.countdownName)
 
                         if (tips == "加载必要数据(5/10)") {
                             tips = "加载必要数据(6/10)"
                         }
                         Global.countdownTime = getCountDownTime()
+                        writeToFile(jsonCountDownTimeFilePath, Global.countdownTime)
 
                         if (tips == "加载必要数据(6/10)") {
                             tips = "加载必要数据(7/10)"
@@ -280,6 +280,10 @@ fun title() {
                         println("Student Data has been written")
                     }
                 }
+                val localCountDownName = readFromFile(jsonCountDownNameFilePath)
+                val localCountDownTime = readFromFile(jsonCountDownTimeFilePath)
+                Global.countdownName = if (localCountDownName != "404") localCountDownName else "高考"
+                Global.countdownTime = if (localCountDownTime != "404") localCountDownTime else "2026-6-7"
             }
             delay(1000)
         }
@@ -301,6 +305,10 @@ fun title() {
         println("Global.url: ${Global.url}, Global.timeApi: ${Global.timeApi}, Global.isOpen: ${Global.isOpen}, isModelExists: $isModelExists, Global.downloadUrl: ${Global.downloadUrl}, isVoiceIdentify: ${isVoiceIdentify.value}")
         if (!isInternetAvailable()) {
             Global.setIsInternetAvailable(false)
+            val localCountDownName = readFromFile(jsonCountDownNameFilePath)
+            val localCountDownTime = readFromFile(jsonCountDownTimeFilePath)
+            Global.countdownName = if (localCountDownName != "404") localCountDownName else "高考"
+            Global.countdownTime = if (localCountDownTime != "404") localCountDownTime else "2026-6-7"
             if (readFromFile(jsonNameListFilePath) != "404" || readFromFile(jsonSubjectListFilePath) != "404") {
                 tips = "当前无网络连接，即将进入离线模式"
                 delay(900)
