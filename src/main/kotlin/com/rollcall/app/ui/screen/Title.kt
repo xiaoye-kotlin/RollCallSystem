@@ -6,15 +6,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
-import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -288,114 +287,100 @@ fun title() {
         }
     }
 
+    // ==================== 现代化加载界面 ====================
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp),
+            .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
+        // 右上角最小化按钮
         Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth()
-                .padding(10.dp),
+            modifier = Modifier.fillMaxSize().padding(8.dp),
             contentAlignment = Alignment.TopEnd
         ) {
-            IconButton(
-                modifier = Modifier,
-                onClick = { AppState.setIsMinimize(true) }) {
+            IconButton(onClick = { AppState.setIsMinimize(true) }) {
                 Icon(
-                    modifier = Modifier
-                        .size(36.dp),
+                    modifier = Modifier.size(32.dp),
                     painter = painterResource("/images/minimize.png"),
-                    contentDescription = "Minimize"
+                    contentDescription = "最小化",
+                    tint = Color.White.copy(alpha = 0.7f)
                 )
             }
         }
+
+        // 主内容区
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            MaterialTheme {
-                val titleImage: Painter = painterResource("images/welcome.png")
-                val iconImage: Painter = painterResource("images/callTheRoll.png")
+            // 应用图标
+            val iconImage: Painter = painterResource("images/callTheRoll.png")
+            Image(
+                painter = iconImage, contentDescription = "应用图标",
+                modifier = Modifier.padding(bottom = 24.dp).size(120.dp)
+            )
 
-                Image(
-                    painter = iconImage, contentDescription = null,
-                    modifier = Modifier.padding(bottom = 20.dp)
-                )
+            // 应用名称
+            Text(
+                text = "智能点名系统",
+                fontSize = 36.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-                if (tips.contains("加载") || tips.contains("整理")) {
-                    Box(
-                        modifier = Modifier
-                            .padding(bottom = 20.dp)
-                            .graphicsLayer {
-                                shape = RoundedCornerShape(16.dp)
-                                clip = true
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFF7CFC00).copy(alpha = 0.4f), RoundedCornerShape(32.dp))
-                                .padding(start = 15.dp, end = 15.dp, top = 10.dp, bottom = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = tips,
-                                fontSize = 30.sp,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
+            Text(
+                text = "v${AppState.VERSION}",
+                fontSize = 16.sp,
+                color = Color.White.copy(alpha = 0.6f),
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
 
-                } else if (tips.isNotEmpty() && tips.isNotBlank()) {
-                    Box(
-                        modifier = Modifier
-                            .padding(bottom = 20.dp)
-                            .graphicsLayer {
-                                shape = RoundedCornerShape(16.dp)
-                                clip = true
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .background(Color.Red.copy(alpha = 0.4f), RoundedCornerShape(32.dp))
-                                .padding(start = 15.dp, end = 15.dp, top = 10.dp, bottom = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = tips,
-                                fontSize = 30.sp,
-                                color = Color.White,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
+            // 状态提示条
+            if (tips.isNotEmpty() && tips.isNotBlank()) {
+                val isProgress = tips.contains("加载") || tips.contains("整理")
+                val bgColor = if (isProgress) {
+                    Color.White.copy(alpha = 0.2f)
                 } else {
-                    Spacer(modifier = Modifier.height(133.dp))
+                    Color(0xFFE74C3C).copy(alpha = 0.4f)
                 }
-
-                Image(painter = titleImage, contentDescription = "Title")
+                Box(
+                    modifier = Modifier
+                        .padding(bottom = 24.dp)
+                        .background(bgColor, RoundedCornerShape(24.dp))
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = tips,
+                        fontSize = 24.sp,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.height(60.dp))
             }
+
+            // 欢迎图片
+            val titleImage: Painter = painterResource("images/welcome.png")
+            Image(painter = titleImage, contentDescription = "欢迎")
         }
 
+        // 底部版权信息
         Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(),
-            contentAlignment = Alignment.BottomEnd
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
         ) {
             Text(
-                modifier = Modifier,
-                text = "By Compose Desktop",
-                fontSize = 20.sp
+                text = "Powered by Compose Desktop",
+                fontSize = 14.sp,
+                color = Color.White.copy(alpha = 0.5f),
+                modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-
     }
 }

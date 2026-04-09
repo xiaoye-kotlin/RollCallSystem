@@ -53,60 +53,47 @@ object TriangleShape : Shape {
 }
 
 
+/**
+ * 悬浮窗主体UI
+ * 显示圆形浮动按钮，支持课程提醒功能
+ * 按钮有动画效果，定期显示表情
+ */
 @Composable
 fun dragWindow() {
-
-
     val displayText = buttonState.collectAsState()
     var isClick by remember { mutableStateOf(false) }
     var longPressed by remember { mutableStateOf(false) }
 
     if (isClick && displayText.value == "点名") {
-        //fetchWebPage(AppState.url)
         isClick = false
         AppState.setButtonState("关闭")
     }
 
     if (isClick && displayText.value == "关闭") {
-        //killProcess("msedge.exe")
         isClick = false
         AppState.setButtonState("点名")
     }
 
-// 存储协程任务，用来取消之前的协程
-
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Transparent)
+        modifier = Modifier.fillMaxSize().background(Color.Transparent)
     ) {
         var subject = ""
-
         val isChangeFace = AppState.isChangeFace.collectAsState()
         val isTime = AppState.isTime.collectAsState()
-
         val week = AppState.week.collectAsState()
         val time = AppState.time.collectAsState()
 
+        // 判断当前是否课间，显示下节课提醒
         if (isTime.value && week.value != "无" && time.value != "无") {
             val todaySchedule = subjectList[week.value]
             if (todaySchedule != null) {
-                val currentTime = time.value // 当前时间
-                val nextClass = getNextClassIfDismissalTime(currentTime, todaySchedule.schedule)
-
-                if (nextClass != null) {
-                    if (nextClass != "未下课") {
-                        subject = nextClass
-                        AppState.setIsChangeFace(true)
-                        println("Next Subject is: $nextClass")
-                    } else {
-                        AppState.setIsChangeFace(false)
-                    }
+                val nextClass = getNextClassIfDismissalTime(time.value, todaySchedule.schedule)
+                if (nextClass != null && nextClass != "未下课") {
+                    subject = nextClass
+                    AppState.setIsChangeFace(true)
                 } else {
-                    println("No Subject")
+                    AppState.setIsChangeFace(false)
                 }
-            } else {
-                println("No Subject")
             }
         } else {
             AppState.setIsChangeFace(false)
@@ -115,22 +102,13 @@ fun dragWindow() {
         var isAnimated by remember { mutableStateOf(false) }
         var isChange by remember { mutableStateOf(false) }
 
-        LaunchedEffect(Unit) {
-            delay(1000)
-            isAnimated = true
-        }
-
+        LaunchedEffect(Unit) { delay(1000); isAnimated = true }
         LaunchedEffect(isChangeFace.value) {
-            isAnimated = false  // 在每次状态变化时重置动画状态
-            delay(500)  // 延迟触发动画
-            isAnimated = true  // 设置为 true 以触发动画
+            isAnimated = false; delay(500); isAnimated = true
         }
-
         LaunchedEffect(isChangeFace.value) {
-            delay(1000)
-            isChange = isChangeFace.value
+            delay(1000); isChange = isChangeFace.value
         }
-
         LaunchedEffect(longPressed) {
             if (longPressed) {
                 delay(2000)
@@ -151,17 +129,15 @@ fun dragWindow() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxSize()
             ) {
+                // 课程提醒气泡
                 if (isChange) {
                     Surface(
-                        modifier = Modifier
-                            .background(Color.Transparent)
-                            .height(100.dp)
-                            .width(300.dp)
+                        modifier = Modifier.background(Color.Transparent)
+                            .height(100.dp).width(300.dp)
                             .clip(RoundedCornerShape(16.dp)),
                     ) {
                         Box(
-                            modifier = Modifier
-                                .background(Color.LightGray)
+                            modifier = Modifier.background(Color(0xFF2D2D3F).copy(alpha = 0.85f))
                                 .fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
@@ -173,6 +149,7 @@ fun dragWindow() {
                                     modifier = Modifier.padding(start = 10.dp, top = 10.dp, bottom = 10.dp),
                                     text = "下节课是",
                                     fontSize = 35.sp,
+                                    color = Color.White
                                 )
                                 Text(
                                     text = "${subject}课",
@@ -181,9 +158,9 @@ fun dragWindow() {
                                     style = TextStyle(
                                         brush = Brush.linearGradient(
                                             colors = listOf(
-                                                Color(0xFFFF0000), // 红色
-                                                Color(0xFFFF6347), // 番茄红
-                                                Color(0xFFFF0000)  // 红色
+                                                Color(0xFFFF6B6B),
+                                                Color(0xFFFF8E8E),
+                                                Color(0xFFFF6B6B)
                                             )
                                         ),
                                         fontWeight = FontWeight.Bold
@@ -193,92 +170,83 @@ fun dragWindow() {
                                     modifier = Modifier.padding(end = 10.dp, top = 10.dp, bottom = 10.dp),
                                     text = "~",
                                     fontSize = 35.sp,
+                                    color = Color.White
                                 )
                             }
                         }
                     }
+                    // 三角形指示器
                     Surface(
-                        modifier = Modifier
-                            .background(Color.Transparent)
-                            .size(20.dp)
-                            .clip(TriangleShape) // 将三角形形状应用于 clip
+                        modifier = Modifier.background(Color.Transparent)
+                            .size(20.dp).clip(TriangleShape)
                     ) {
-                        // 三角形箭头
-                        Box(
-                            modifier = Modifier
-                                .background(Color.LightGray)
-                        )
+                        Box(modifier = Modifier.background(Color(0xFF2D2D3F).copy(alpha = 0.85f)))
                     }
                     Spacer(Modifier.height(10.dp))
                 }
 
+                // 悬浮按钮动画
                 var rotation by remember { mutableStateOf(0f) }
                 var scale by remember { mutableStateOf(1f) }
 
                 val animatedRotation by animateFloatAsState(
                     targetValue = rotation,
-                    animationSpec = tween(
-                        durationMillis = 1000,
-                        easing = FastOutLinearInEasing
-                    ), label = ""
+                    animationSpec = tween(durationMillis = 1000, easing = FastOutLinearInEasing),
+                    label = ""
                 )
-
                 val animatedScale by animateFloatAsState(
                     targetValue = scale,
-                    animationSpec = tween(
-                        durationMillis = 1000,
-                        easing = FastOutLinearInEasing
-                    ), label = ""
+                    animationSpec = tween(durationMillis = 1000, easing = FastOutLinearInEasing),
+                    label = ""
                 )
 
                 var isFirstRun by remember { mutableStateOf(false) }
 
+                // 定期表情动画
                 LaunchedEffect(Unit) {
                     while (true) {
                         if (isFirstRun) {
-
                             val randomNumber = (1..2).random()
                             if (randomNumber == 1 && buttonState.value != "关闭") {
                                 AppState.setButtonState("^_^")
                                 delay(3000)
-                                if (buttonState.value != "关闭") {
-                                    AppState.setButtonState("点名")
-                                }
+                                if (buttonState.value != "关闭") AppState.setButtonState("点名")
                             } else if (buttonState.value != "关闭") {
-                                scale = 1.3f
-                                rotation = 360f
+                                scale = 1.3f; rotation = 360f
                                 delay(1200)
-                                scale = 1f
-                                rotation = 0f
+                                scale = 1f; rotation = 0f
                                 delay(1200)
                                 if (buttonState.value != "关闭") {
                                     AppState.setButtonState("＠_＠")
                                     delay(3000)
-                                    if (buttonState.value != "关闭") {
-                                        AppState.setButtonState("点名")
-                                    }
+                                    if (buttonState.value != "关闭") AppState.setButtonState("点名")
                                 }
                             }
                         } else {
                             isFirstRun = true
                         }
-                        val randomDelay = (1..10000).random() + 60000
-                        delay(randomDelay.toLong())
+                        delay((1..10000).random().toLong() + 60000)
                     }
                 }
 
+                // 现代化浮动按钮
                 Surface(
-                    modifier = Modifier
-                        .background(Color.Transparent)
-                        .height(100.dp)
-                        .width(100.dp)
+                    modifier = Modifier.background(Color.Transparent)
+                        .height(100.dp).width(100.dp)
                         .clip(CircleShape)
                         .rotate(animatedRotation)
                         .scale(animatedScale)
                 ) {
                     Box(
                         modifier = Modifier
-                            .background(Color(AppState.accentColorFloating))
+                            .background(
+                                Brush.radialGradient(
+                                    colors = listOf(
+                                        Color(AppState.accentColorFloating),
+                                        Color(AppState.accentColorFloating).copy(alpha = 0.8f)
+                                    )
+                                )
+                            )
                             .fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
@@ -286,7 +254,8 @@ fun dragWindow() {
                             modifier = Modifier.padding(10.dp),
                             text = displayText.value,
                             fontSize = 30.sp,
-                            style = TextStyle(fontWeight = FontWeight.Bold)
+                            style = TextStyle(fontWeight = FontWeight.Bold),
+                            color = Color(0xFF2D2D3F)
                         )
                     }
                 }
