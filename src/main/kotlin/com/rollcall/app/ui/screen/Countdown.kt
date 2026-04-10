@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.network.NetworkHelper.getResourcePackageUrl
 import com.rollcall.app.state.AppState
 import com.rollcall.app.ui.theme.AppTheme
 
@@ -35,7 +36,7 @@ fun countdown() {
         withContext(Dispatchers.IO) {
             while (!downloadMusic) {
                 downloadMusic = checkAndCopyModel(
-                    "http://xy.wsmlbe.cn/Countdown.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/Countdown/")
+                    getResourcePackageUrl("Countdown.zip"), File("D:/Xiaoye/"), File("D:/Xiaoye/Countdown/")
                 )
                 if (downloadMusic) {
                     isDownloadSuccessfully.value = true

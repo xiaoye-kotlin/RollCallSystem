@@ -127,6 +127,8 @@ fun main() = application {
                     println("网络状态: ${NetworkHelper.isInternetAvailable()}")
                     if (AppState.url != "No Wifi" && AppState.url.contains("http")) {
                         AppState.setIsOpen(NetworkHelper.getIsOpen().toBoolean())
+                        AppState.downloadUrl = NetworkHelper.getDownloadUrl()
+                        AppState.timeApi = NetworkHelper.getTimeApi()
                         AppState.setIsVoiceIdentify(NetworkHelper.getIsVoiceIdentifyOpen().toBoolean())
                         AppState.setIsTime(NetworkHelper.getIsTimeOpen().toBoolean())
                         AppState.setIsCountDownDayOpen(NetworkHelper.getCountDownDaySwitch().toBoolean())
@@ -134,7 +136,7 @@ fun main() = application {
                         AppState.setIsWallpaper(NetworkHelper.getWallpaperSwitch().toBoolean())
                         AppState.setIsDeleteWallpaper(NetworkHelper.getDeleteWallpaperSwitch().toBoolean())
 
-                        if (!isOpen.value) exitProcess(0)
+                        if (!AppState.isOpen.value) exitProcess(0)
 
                         // 彩蛋检测（每100秒最多触发一次）
                         val now = System.currentTimeMillis()
@@ -370,12 +372,12 @@ fun main() = application {
     // ==================== 悬浮窗系统 ====================
     val isChangeFace = AppState.isChangeFace.collectAsState()
     var isRunCountdownDay by remember { mutableStateOf(false) }
+    var isQuickToolsOpen by remember { mutableStateOf(false) }
+    var isStatisticsOpen by remember { mutableStateOf(false) }
+    var isGroupGeneratorOpen by remember { mutableStateOf(false) }
+    var currentDropTarget by remember { mutableStateOf(DROP_TARGET_NONE) }
 
-    // 工具面板状态
     var showScheduleWindow by remember { mutableStateOf(false) }
-    var showStatisticsPanel by remember { mutableStateOf(false) }
-    var showGroupGenerator by remember { mutableStateOf(false) }
-    var showQuickTools by remember { mutableStateOf(false) }
     var showQuizScreen by remember { mutableStateOf(false) }
     var showSeatMapScreen by remember { mutableStateOf(false) }
     var showNoiseMeterScreen by remember { mutableStateOf(false) }
@@ -407,39 +409,58 @@ fun main() = application {
 
         // 更多选项窗口（拖拽触发）
         val isDragging = AppState.isDragging.collectAsState()
-        if (isCountDownOpen.value && countDownType.value == 0 && isDragging.value) {
-            LaunchedEffect(Unit) { delay(500); isRunCountdown = true }
-            MoreOptionsWindow(isRunCountdown)
+        if (isDragging.value) {
+            MoreOptionsWindow(
+                isVisible = true,
+                isCountDownEnabled = isCountDownOpen.value && countDownType.value == 0,
+                currentDropTarget = currentDropTarget
+            )
         } else if (!(isCountDownOpen.value && countDownType.value != 0)) {
             isRunCountdown = false
+            currentDropTarget = DROP_TARGET_NONE
         }
 
         // 悬浮窗主窗口
         FloatingWindow(
             isCountDownOpen = isCountDownOpen.value,
             countDownType = countDownType.value,
-            isChangeFace = isChangeFace.value
+            isChangeFace = isChangeFace.value,
+            onDropTargetChanged = { currentDropTarget = it },
+            onOpenQuickTools = {
+                isQuickToolsOpen = true
+                isStatisticsOpen = false
+                isGroupGeneratorOpen = false
+            }
         )
 
-        // ==================== 工具面板窗口 ====================
         if (showScheduleWindow) {
             ScheduleWindow(onClose = { showScheduleWindow = false })
         }
-        if (showStatisticsPanel) {
-            StatisticsPanel(onClose = { showStatisticsPanel = false })
-        }
-        if (showGroupGenerator) {
-            GroupGeneratorPanel(onClose = { showGroupGenerator = false })
-        }
-        if (showQuickTools) {
+        if (isQuickToolsOpen) {
             QuickToolsPanel(
-                onClose = { showQuickTools = false },
-                onOpenStatistics = { showStatisticsPanel = true },
-                onOpenGroupGenerator = { showGroupGenerator = true },
+                onClose = { isQuickToolsOpen = false },
+                onOpenStatistics = {
+                    isQuickToolsOpen = false
+                    isStatisticsOpen = true
+                },
+                onOpenGroupGenerator = {
+                    isQuickToolsOpen = false
+                    isGroupGeneratorOpen = true
+                },
                 onOpenSchedule = { showScheduleWindow = true },
                 onOpenQuiz = { showQuizScreen = true },
                 onOpenSeatMap = { showSeatMapScreen = true },
                 onOpenNoiseMeter = { showNoiseMeterScreen = true }
+            )
+        }
+        if (isStatisticsOpen) {
+            StatisticsPanel(
+                onClose = { isStatisticsOpen = false }
+            )
+        }
+        if (isGroupGeneratorOpen) {
+            GroupGeneratorPanel(
+                onClose = { isGroupGeneratorOpen = false }
             )
         }
         if (showQuizScreen) {

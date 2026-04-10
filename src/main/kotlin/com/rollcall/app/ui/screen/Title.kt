@@ -81,6 +81,16 @@ fun title() {
 
     var isDownloading by remember { mutableStateOf(false) }
 
+    fun isValidStudentJson(value: String): Boolean {
+        val trimmed = value.trim()
+        return trimmed.startsWith("[") && FileHelper.isValidJson(trimmed)
+    }
+
+    fun isValidSubjectJson(value: String): Boolean {
+        val trimmed = value.trim()
+        return trimmed.startsWith("{") && FileHelper.isValidJson(trimmed)
+    }
+
     LaunchedEffect(Unit) {
         while (isLoading.value) {
             println("Countdown: $countdown")
@@ -106,16 +116,34 @@ fun title() {
                 if (!tips.contains("10/10") && tips != "整理本地文件...") {
                     tips = "加载必要数据(9/10)"
                 }
-                while (jsonData == "无") {
-                    jsonData = getNameList()
+                while (!isValidStudentJson(jsonData)) {
+                    val remoteNameList = getNameList()
+                    if (isValidStudentJson(remoteNameList)) {
+                        jsonData = remoteNameList
+                    } else {
+                        val localNameList = readFromFile(jsonNameListFilePath)
+                        if (isValidStudentJson(localNameList)) {
+                            println("Using cached student data")
+                            jsonData = localNameList
+                        }
+                    }
                     delay(3000)
                 }
 
                 if (tips != "整理本地文件...") {
                     tips = "加载必要数据(10/10)"
                 }
-                while (subjectData == "无") {
-                    subjectData = getSubjectList()
+                while (!isValidSubjectJson(subjectData)) {
+                    val remoteSubjectList = getSubjectList()
+                    if (isValidSubjectJson(remoteSubjectList)) {
+                        subjectData = remoteSubjectList
+                    } else {
+                        val localSubjectList = readFromFile(jsonSubjectListFilePath)
+                        if (isValidSubjectJson(localSubjectList)) {
+                            println("Using cached subject data")
+                            subjectData = localSubjectList
+                        }
+                    }
                     delay(3000)
                 }
                 println("Data is touched")
@@ -140,10 +168,10 @@ fun title() {
                 if (countdown <= 0 && countdownTime != "无") {
                     writeToFile(jsonCountDownTimeFilePath, countdownTime)
                 }
-                if (countdown <= 0 && jsonData != "无") {
+                if (countdown <= 0 && isValidStudentJson(jsonData)) {
                     writeToFile(jsonNameListFilePath, jsonData)
                 }
-                if (countdown <= 0 && subjectData != "无") {
+                if (countdown <= 0 && isValidSubjectJson(subjectData)) {
                     writeToFile(jsonSubjectListFilePath, subjectData)
                     AppState.setIsLoading(false)
                 }
@@ -175,7 +203,7 @@ fun title() {
                         deleteFileOrDirectory("D:/Xiaoye/CountDownName.json")
                         deleteFileOrDirectory("D:/Xiaoye/CountDownTime.json")
                         AppState.setIsOpen(getIsOpen().toBoolean())
-                        if (!isOpen.value) {
+                        if (!AppState.isOpen.value) {
                             exitProcess(0)
                         }
 
@@ -215,6 +243,23 @@ fun title() {
                             tips = "加载必要数据(6/10)"
                         }
                         AppState.countdownTime = getCountDownTime()
+
+                        val hasRequiredConfig =
+                            AppState.url.startsWith("http") &&
+                                AppState.timeApi.startsWith("http") &&
+                                AppState.downloadUrl.startsWith("http") &&
+                                AppState.isOpen.value
+                        if (hasRequiredConfig) {
+                            println(
+                                "Remote config ready: " +
+                                    "url=${AppState.url}, " +
+                                    "timeApi=${AppState.timeApi}, " +
+                                    "downloadUrl=${AppState.downloadUrl}, " +
+                                    "isOpen=${AppState.isOpen.value}, " +
+                                    "isVoiceIdentify=${AppState.isVoiceIdentify.value}"
+                            )
+                            isDownloading = true
+                        }
 
                         if (tips == "加载必要数据(6/10)") {
                             tips = "加载必要数据(7/10)"
@@ -267,19 +312,6 @@ fun title() {
     }
 
     LaunchedEffect(Unit) {
-        while (isInternetAvailable.value) {
-            if ((AppState.url != "" && AppState.url.contains("http") && AppState.timeApi != "" && AppState.timeApi.contains(
-                    "http"
-                ) && AppState.downloadUrl != "" && AppState.downloadUrl.contains("http") && isOpen.value)
-            ) {
-                isDownloading = true
-            }
-            delay(1000)
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        println("AppState.url: ${AppState.url}, AppState.timeApi: ${AppState.timeApi}, AppState.isOpen: ${AppState.isOpen}, isModelExists: $isModelExists, AppState.downloadUrl: ${AppState.downloadUrl}, isVoiceIdentify: ${isVoiceIdentify.value}")
         if (!NetworkHelper.isInternetAvailable()) {
             AppState.setIsInternetAvailable(false)
             if (readFromFile(jsonNameListFilePath) != "404" || readFromFile(jsonSubjectListFilePath) != "404") {

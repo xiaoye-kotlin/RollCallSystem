@@ -33,7 +33,7 @@ import java.util.Locale
 
 /**
  * 快捷工具面板
- * 提供常用工具的快速入口
+ * 提供当前已接入功能的快速入口
  *
  * @param onClose 关闭面板回调
  * @param onOpenStatistics 打开统计面板回调
@@ -140,7 +140,7 @@ fun QuickToolsPanel(
                     )
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(16.dp))
 
                 // 第二行
                 Row(
@@ -213,6 +213,8 @@ fun QuickToolsPanel(
                     )
                 }
 
+                HelperCard(colors)
+
                 Spacer(Modifier.weight(1f))
 
                 // 底部版本信息
@@ -225,6 +227,39 @@ fun QuickToolsPanel(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HelperCard(colors: com.rollcall.app.ui.theme.AppColors) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(colors.cardBackground)
+            .border(1.dp, colors.cardBorder, RoundedCornerShape(18.dp))
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "操作提示",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textPrimary
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "左键单击悬浮球开始点名，长按触发多人抽取，拖拽仍然用于倒计时投放。",
+            fontSize = 13.sp,
+            color = colors.textSecondary,
+            lineHeight = 20.sp
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "拖拽悬浮球到右侧面板顶部的“快捷工具”区域后松手即可打开。",
+            fontSize = 13.sp,
+            color = colors.textHint,
+            lineHeight = 20.sp
+        )
     }
 }
 

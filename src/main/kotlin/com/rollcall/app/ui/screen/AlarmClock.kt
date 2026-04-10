@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.*
 import java.io.File
 import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.network.NetworkHelper.getResourcePackageUrl
 import com.rollcall.app.state.AppState
 
 fun Modifier.neumorphism(): Modifier = this
@@ -79,7 +80,7 @@ fun alarmClock() {
             while (!isMusicClock) {
                 withContext(Dispatchers.IO) {
                     isMusicClock = checkAndCopyModel(
-                        "http://xy.wsmlbe.cn/myBeauty.zip", File("D:/Xiaoye"), File("D:/Xiaoye/Music/")
+                        getResourcePackageUrl("myBeauty.zip"), File("D:/Xiaoye"), File("D:/Xiaoye/Music/")
                     )
                 }
                 delay(15000)
