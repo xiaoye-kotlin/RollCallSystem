@@ -226,7 +226,7 @@ fun main() = application {
             isOpenHtml = false
             delay(500)
             isFirstNameVisible = true
-            delay(6000)
+            delay(8500)
             driveIsLongPressed.value = false
             floatingWindowVisible = true
             isReadyVisible = false

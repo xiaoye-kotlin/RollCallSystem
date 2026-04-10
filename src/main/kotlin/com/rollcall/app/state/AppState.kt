@@ -83,6 +83,34 @@ object AppState {
         studentList = parseStudentJson(json)
     }
 
+    /** 提供点名展示层使用的姓名池 */
+    fun getStudentNamePool(includeName: String = "", limit: Int = 36): List<String> {
+        val names = studentList
+            .map { it.name.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .toMutableList()
+
+        if (includeName.isNotBlank() && includeName !in names) {
+            names.add(0, includeName)
+        }
+
+        val fallbackNames = listOf(
+            "张晨", "李浩", "王琳", "赵宇", "陈乐", "周航",
+            "吴瑞", "郑博", "孙妍", "林嘉", "刘洋", "许然"
+        )
+
+        if (names.isEmpty()) {
+            return if (includeName.isNotBlank()) {
+                (listOf(includeName) + fallbackNames).distinct().take(limit)
+            } else {
+                fallbackNames.take(limit)
+            }
+        }
+
+        return names.take(limit)
+    }
+
     /** 课程表数据 */
     var subjectList: Map<String, DailySchedule> = emptyMap()
 
