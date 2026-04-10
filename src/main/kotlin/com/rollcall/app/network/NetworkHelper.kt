@@ -267,20 +267,28 @@ object NetworkHelper {
                         url.endsWith(".zip", ignoreCase = true)
 
                 if (isZip) {
-                    // ZIP文件自动解压
+                    // ZIP文件自动解压（带Zip Slip路径遍历防护）
                     println("\"download\" 检测到ZIP文件，正在解压...")
+                    val canonicalTargetDir = targetDir.canonicalFile
+                    val canonicalTargetPath = canonicalTargetDir.path + File.separator
                     response.body.byteStream().use { inputStream ->
                         ZipInputStream(inputStream).use { zip ->
                             var entry = zip.nextEntry
                             var count = 0
                             while (entry != null) {
                                 count++
-                                val file = File(targetDir, entry.name)
+                                val file = File(canonicalTargetDir, entry.name)
+                                val canonicalFile = file.canonicalFile
+                                // 防止Zip Slip攻击：验证解压路径不超出目标目录
+                                if (canonicalFile.path != canonicalTargetDir.path &&
+                                    !canonicalFile.path.startsWith(canonicalTargetPath)) {
+                                    throw IOException("ZIP条目包含非法路径: ${entry.name}")
+                                }
                                 if (entry.isDirectory) {
-                                    file.mkdirs()
+                                    canonicalFile.mkdirs()
                                 } else {
-                                    file.parentFile?.mkdirs()
-                                    FileOutputStream(file).use { fos -> zip.copyTo(fos) }
+                                    canonicalFile.parentFile?.mkdirs()
+                                    FileOutputStream(canonicalFile).use { fos -> zip.copyTo(fos) }
                                 }
                                 entry = zip.nextEntry
                             }
@@ -330,18 +338,19 @@ object NetworkHelper {
         return withContext(Dispatchers.IO) {
             try {
                 val request = Request.Builder().url(url).build()
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val body = response.body.string()
-                    val pattern = Pattern.compile("${tag}(.*?)${tag}", Pattern.DOTALL)
-                    val matcher = pattern.matcher(body)
-                    if (matcher.find()) {
-                        matcher.group(1) ?: default
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body.string()
+                        val pattern = Pattern.compile("${tag}(.*?)${tag}", Pattern.DOTALL)
+                        val matcher = pattern.matcher(body)
+                        if (matcher.find()) {
+                            matcher.group(1) ?: default
+                        } else {
+                            default
+                        }
                     } else {
                         default
                     }
-                } else {
-                    default
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -357,11 +366,12 @@ object NetworkHelper {
         return withContext(Dispatchers.IO) {
             try {
                 val request = Request.Builder().url(url).build()
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    response.body.string()
-                } else {
-                    default
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        response.body.string()
+                    } else {
+                        default
+                    }
                 }
             } catch (e: IOException) {
                 e.printStackTrace()

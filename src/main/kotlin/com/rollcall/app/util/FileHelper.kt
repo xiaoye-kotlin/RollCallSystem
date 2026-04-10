@@ -98,7 +98,12 @@ object FileHelper {
 
         val type = object : TypeToken<MutableMap<String, Int>>() {}.type
         val dataMap: MutableMap<String, Int> = if (jsonData != "404") {
-            gson.fromJson(jsonData, type)
+            try {
+                gson.fromJson(jsonData, type) ?: mutableMapOf()
+            } catch (_: Exception) {
+                // JSON解析失败时（文件损坏等情况），使用空map避免崩溃
+                mutableMapOf()
+            }
         } else {
             mutableMapOf()
         }

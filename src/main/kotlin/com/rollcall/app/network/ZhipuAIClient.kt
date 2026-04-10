@@ -83,16 +83,17 @@ class ZhipuAIClient {
                     .addHeader("Authorization", "Bearer $key")
                     .build()
 
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val responseBody = response.body.string()
-                    val content = gson.fromJson(responseBody, JsonObject::class.java)
-                        .getAsJsonArray("choices")[0]
-                        .asJsonObject.getAsJsonObject("message")
-                        .get("content").asString
-                    onSuccess(content)
-                } else {
-                    onError(Exception("API请求失败: ${response.code}"))
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val responseBody = response.body.string()
+                        val content = gson.fromJson(responseBody, JsonObject::class.java)
+                            .getAsJsonArray("choices")[0]
+                            .asJsonObject.getAsJsonObject("message")
+                            .get("content").asString
+                        onSuccess(content)
+                    } else {
+                        onError(Exception("API请求失败: ${response.code}"))
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

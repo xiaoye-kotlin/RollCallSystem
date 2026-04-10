@@ -200,9 +200,6 @@ object AppState {
 
         if (studentList.isEmpty()) return null
 
-        // 计算总权重
-        val totalWeight = studentList.sumOf { it.probability }
-
         // 过滤掉最近被点到的学生
         val availableStudents = studentList.filter { !recentStudents.contains(it) }
 
@@ -215,21 +212,30 @@ object AppState {
         // 打乱顺序增加随机性
         val shuffledStudents = availableStudents.shuffled()
 
-        // 使用权重进行随机选择
-        val randomWeight = Random.nextInt(0, totalWeight)
-        var cumulativeWeight = 0
-        var selectedStudent: Student? = null
+        // 计算可用学生的总权重
+        val totalWeight = shuffledStudents.sumOf { it.probability }
 
-        for (student in shuffledStudents) {
-            cumulativeWeight += student.probability
-            if (randomWeight < cumulativeWeight) {
-                selectedStudent = student
-                break
+        // 如果总权重为0（所有学生权重都为0），使用均匀随机选择
+        val selectedStudent: Student = if (totalWeight <= 0) {
+            shuffledStudents.random()
+        } else {
+            // 使用权重进行随机选择
+            val randomWeight = Random.nextInt(0, totalWeight)
+            var cumulativeWeight = 0
+            var picked: Student? = null
+
+            for (student in shuffledStudents) {
+                cumulativeWeight += student.probability
+                if (randomWeight < cumulativeWeight) {
+                    picked = student
+                    break
+                }
             }
+            picked ?: shuffledStudents.random()
         }
 
-        // 如果选中无效，重试
-        while (selectedStudent == null || selectedStudent.name.isEmpty()) {
+        // 如果选中学生姓名为空，重试
+        if (selectedStudent.name.isEmpty()) {
             return getRandomStudent()
         }
 

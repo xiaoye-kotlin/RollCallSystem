@@ -15,6 +15,7 @@ class OcrHelper {
     /**
      * 识别图片中的文字
      * 优先使用ONNX引擎（兼容性最好），失败时自动切换到NCNN引擎
+     * 注意：此方法不会删除传入的图片文件，调用者需自行管理文件生命周期
      *
      * @param imageFile 要识别的图片文件
      * @return 识别出的文字内容
@@ -34,9 +35,6 @@ class OcrHelper {
             println("ONNX引擎识别失败: ${e.message}")
             // 备选方案：使用NCNN引擎
             tryNcnnEngine(imageFile, e)
-        } finally {
-            // 清理临时图片文件
-            cleanupFile(imageFile)
         }
     }
 
@@ -55,17 +53,6 @@ class OcrHelper {
         } catch (e: Exception) {
             println("NCNN备选引擎也失败: ${e.message}")
             "识别失败: ${originalError.message}"
-        }
-    }
-
-    /**
-     * 安全删除临时文件
-     */
-    private fun cleanupFile(file: File) {
-        try {
-            if (file.exists()) file.delete()
-        } catch (_: Exception) {
-            // 忽略删除失败
         }
     }
 }

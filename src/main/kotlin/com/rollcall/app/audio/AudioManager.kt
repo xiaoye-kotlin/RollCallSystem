@@ -6,6 +6,7 @@ import javafx.scene.media.Media
 import javafx.scene.media.MediaPlayer
 import java.io.File
 import java.net.URI
+import java.net.URLEncoder
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
@@ -64,7 +65,8 @@ object AudioManager {
         if (localFile.exists()) {
             playLocal(localFile.absolutePath)
         } else if (isInternetAvailable) {
-            downloadAndPlay("$baseUrl/voice.php?text=$name", localFile)
+            val encodedName = URLEncoder.encode(name, "UTF-8")
+            downloadAndPlay("$baseUrl/voice.php?text=$encodedName", localFile)
         }
     }
 

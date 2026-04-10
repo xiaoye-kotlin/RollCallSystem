@@ -20,8 +20,8 @@ import com.rollcall.app.setWindowIcon
 import com.rollcall.app.state.AppState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import javax.imageio.ImageIO
 
 /**
@@ -44,12 +44,10 @@ fun CountdownDayWindow(isVisible: Boolean) {
 
         // 保持窗口置顶
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                while (true) {
-                    window.isMinimized = false
-                    window.isAlwaysOnTop = true
-                    delay(1000)
-                }
+            while (isActive) {
+                window.isMinimized = false
+                window.isAlwaysOnTop = true
+                delay(1000)
             }
         }
 
@@ -96,12 +94,10 @@ fun CountdownTimerWindow(isVisible: Boolean) {
         setWindowIcon()
 
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                while (true) {
-                    window.isMinimized = false
-                    window.isAlwaysOnTop = true
-                    delay(1000)
-                }
+            while (isActive) {
+                window.isMinimized = false
+                window.isAlwaysOnTop = true
+                delay(1000)
             }
         }
 
@@ -147,12 +143,10 @@ fun MoreOptionsWindow(isVisible: Boolean) {
         setWindowIcon()
 
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                while (true) {
-                    window.isMinimized = false
-                    window.isAlwaysOnTop = true
-                    delay(1000)
-                }
+            while (isActive) {
+                window.isMinimized = false
+                window.isAlwaysOnTop = true
+                delay(1000)
             }
         }
 
@@ -212,12 +206,10 @@ fun ApplicationScope.FloatingWindow(
 
         // 保持置顶
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                while (true) {
-                    window.isMinimized = false
-                    window.isAlwaysOnTop = true
-                    delay(1000)
-                }
+            while (isActive) {
+                window.isMinimized = false
+                window.isAlwaysOnTop = true
+                delay(1000)
             }
         }
 
