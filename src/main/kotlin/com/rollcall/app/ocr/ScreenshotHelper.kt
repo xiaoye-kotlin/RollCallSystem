@@ -16,8 +16,8 @@ object ScreenshotHelper {
 
     /**
      * 静默截图并进行OCR识别
+     * 调用者负责管理返回的截图文件生命周期
      * @return Pair<截图文件, 识别结果文字>
-     * 注意：返回的截图文件在OCR识别后会被自动清理
      */
     fun takeSilentScreenshotAndRecognize(): Pair<File, String> {
         val ocrHelper = OcrHelper()
@@ -43,12 +43,9 @@ object ScreenshotHelper {
             return Pair(outputFile, ocrResult)
         } catch (e: Exception) {
             println("截图或识别失败: ${e.message}")
+            // 失败时清理截图文件
+            try { if (outputFile.exists()) outputFile.delete() } catch (_: Exception) { }
             throw e
-        } finally {
-            // 清理截图临时文件
-            try {
-                if (outputFile.exists()) outputFile.delete()
-            } catch (_: Exception) { }
         }
     }
 

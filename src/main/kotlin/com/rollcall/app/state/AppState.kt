@@ -193,24 +193,30 @@ object AppState {
     /**
      * 随机选择一个学生
      * 使用权重随机算法，避免连续点到同一个学生
-     * @return 姓名的Pair（姓, 名），如果学生列表为空则返回null
+     * @return 姓名的Pair（姓, 名），如果学生列表为空或没有有效学生则返回null
      */
     fun getRandomStudent(): Pair<String, String>? {
         println("正在执行随机点名！")
 
         if (studentList.isEmpty()) return null
 
+        // 过滤出姓名不为空的有效学生
+        val validStudents = studentList.filter { it.name.isNotEmpty() }
+        if (validStudents.isEmpty()) return null
+
         // 过滤掉最近被点到的学生
-        val availableStudents = studentList.filter { !recentStudents.contains(it) }
+        val availableStudents = validStudents.filter { !recentStudents.contains(it) }
 
         // 如果所有学生都被点过，清空记录重新开始
-        if (availableStudents.isEmpty()) {
+        val candidates = if (availableStudents.isEmpty()) {
             recentStudents.clear()
-            return getRandomStudent()
+            validStudents
+        } else {
+            availableStudents
         }
 
         // 打乱顺序增加随机性
-        val shuffledStudents = availableStudents.shuffled()
+        val shuffledStudents = candidates.shuffled()
 
         // 计算可用学生的总权重
         val totalWeight = shuffledStudents.sumOf { it.probability }
@@ -232,11 +238,6 @@ object AppState {
                 }
             }
             picked ?: shuffledStudents.random()
-        }
-
-        // 如果选中学生姓名为空，重试
-        if (selectedStudent.name.isEmpty()) {
-            return getRandomStudent()
         }
 
         // 加入最近记录

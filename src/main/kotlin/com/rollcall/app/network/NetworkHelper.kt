@@ -280,8 +280,7 @@ object NetworkHelper {
                                 val file = File(canonicalTargetDir, entry.name)
                                 val canonicalFile = file.canonicalFile
                                 // 防止Zip Slip攻击：验证解压路径不超出目标目录
-                                if (canonicalFile.path != canonicalTargetDir.path &&
-                                    !canonicalFile.path.startsWith(canonicalTargetPath)) {
+                                if (!canonicalFile.path.startsWith(canonicalTargetPath)) {
                                     throw IOException("ZIP条目包含非法路径: ${entry.name}")
                                 }
                                 if (entry.isDirectory) {
