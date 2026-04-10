@@ -31,6 +31,7 @@ import com.rollcall.app.data.model.WordItem
 import com.rollcall.app.network.ZhipuAIClient
 import com.rollcall.app.ocr.ScreenshotHelper
 import com.rollcall.app.state.AppState
+import com.rollcall.app.ui.theme.AppTheme
 import com.rollcall.app.util.FileHelper
 import kotlinx.coroutines.delay
 import java.util.*
@@ -135,7 +136,9 @@ fun recognizeWord() {
                 size = DpSize.Unspecified
             ),
         ) {
-            WordListPanel(aiAnswer = aiAnswer)
+            com.rollcall.app.ui.theme.AppTheme {
+                WordListPanel(aiAnswer = aiAnswer)
+            }
         }
     }
 }
@@ -173,25 +176,27 @@ private fun WordListPanel(aiAnswer: String) {
     }
 
     if (!isLoading && isLearning.value) {
+        val colors = AppTheme.colors
+
         Column(
             modifier = Modifier
                 .height(800.dp)
                 .width(500.dp)
                 .clip(RoundedCornerShape(32.dp))
-                .background(Color.White),
+                .background(colors.surface),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             // 标题栏
             Box(
                 modifier = Modifier.height(100.dp).fillMaxWidth()
-                    .background(Color(0xFF4A90D9)),
+                    .background(colors.primary),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     "📚 单词学习",
                     style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    color = colors.onPrimary
                 )
             }
 
@@ -205,8 +210,8 @@ private fun WordListPanel(aiAnswer: String) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     when {
-                        wordList == null -> item { Text("请稍后再试。") }
-                        wordList!!.isEmpty() -> item { Text("未发现生词。") }
+                        wordList == null -> item { Text("请稍后再试。", color = colors.textSecondary) }
+                        wordList!!.isEmpty() -> item { Text("未发现生词。", color = colors.textSecondary) }
                         else -> {
                             // 表头
                             item {
@@ -218,7 +223,8 @@ private fun WordListPanel(aiAnswer: String) {
                                         Text(
                                             header,
                                             style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                                            overflow = TextOverflow.Ellipsis, maxLines = 1
+                                            overflow = TextOverflow.Ellipsis, maxLines = 1,
+                                            color = colors.textPrimary
                                         )
                                     }
                                 }
@@ -231,19 +237,19 @@ private fun WordListPanel(aiAnswer: String) {
                                 val word = wordList!![index]
                                 Row(
                                     Modifier.fillMaxWidth().padding(12.dp)
-                                        .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
+                                        .border(1.dp, colors.border, RoundedCornerShape(4.dp))
                                         .padding(8.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(word.word, style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium),
-                                        overflow = TextOverflow.Ellipsis, maxLines = 1)
+                                        overflow = TextOverflow.Ellipsis, maxLines = 1, color = colors.textPrimary)
                                     Spacer(Modifier.width(10.dp))
                                     Text(word.type, style = TextStyle(fontSize = 20.sp),
-                                        overflow = TextOverflow.Ellipsis, maxLines = 1)
+                                        overflow = TextOverflow.Ellipsis, maxLines = 1, color = colors.textSecondary)
                                     Spacer(Modifier.width(10.dp))
                                     Text(word.meaning, style = TextStyle(fontSize = 20.sp),
-                                        overflow = TextOverflow.Ellipsis, maxLines = 1)
+                                        overflow = TextOverflow.Ellipsis, maxLines = 1, color = colors.textPrimary)
                                     Spacer(Modifier.width(10.dp))
                                     Text(
                                         text = when (word.category) {
@@ -254,9 +260,9 @@ private fun WordListPanel(aiAnswer: String) {
                                         style = TextStyle(
                                             fontSize = 20.sp,
                                             color = when (word.category) {
-                                                "new_word" -> Color.Red
-                                                "familiar_new_meaning" -> Color.Blue
-                                                else -> Color.Black
+                                                "new_word" -> colors.error
+                                                "familiar_new_meaning" -> colors.primary
+                                                else -> colors.textPrimary
                                             }
                                         ),
                                         overflow = TextOverflow.Ellipsis, maxLines = 1
@@ -272,14 +278,14 @@ private fun WordListPanel(aiAnswer: String) {
             // 底部操作栏
             Box(
                 modifier = Modifier.height(100.dp).fillMaxWidth()
-                    .background(Color(0xFF4A90D9)),
+                    .background(colors.primary),
                 contentAlignment = Alignment.Center
             ) {
                 IconButton(onClick = { AppState.setIsLearning(false) }) {
                     Icon(
                         Icons.Default.Check,
                         contentDescription = "我知道了",
-                        tint = Color.White,
+                        tint = colors.onPrimary,
                         modifier = Modifier.size(50.dp)
                     )
                 }

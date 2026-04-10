@@ -1,8 +1,11 @@
 package com.rollcall.app.ui.screen
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -10,6 +13,9 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
@@ -33,6 +39,7 @@ import com.rollcall.app.network.NetworkHelper.getSubjectList
 import com.rollcall.app.network.NetworkHelper.getTimeApi
 import com.rollcall.app.network.NetworkHelper.getUrl
 import com.rollcall.app.state.AppState
+import com.rollcall.app.ui.theme.AppTheme
 import com.rollcall.app.util.FileHelper
 import com.rollcall.app.util.readFromFile
 import com.rollcall.app.util.writeToFile
@@ -288,9 +295,59 @@ fun title() {
     }
 
     // ==================== 现代化加载界面 ====================
+    val colors = AppTheme.colors
+
+    // 旋转加载动画
+    val infiniteTransition = rememberInfiniteTransition()
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    // 进度条计算（基于tips阶段）
+    val progress = remember(tips) {
+        when {
+            tips.contains("1/10") -> 0.1f
+            tips.contains("2/10") -> 0.2f
+            tips.contains("3/10") -> 0.3f
+            tips.contains("4/10") -> 0.4f
+            tips.contains("5/10") -> 0.5f
+            tips.contains("6/10") -> 0.6f
+            tips.contains("7/10") -> 0.7f
+            tips.contains("8/10") -> 0.8f
+            tips.contains("9/10") -> 0.9f
+            tips.contains("10/10") -> 0.95f
+            tips.contains("整理") -> 0.98f
+            else -> 0.05f
+        }
+    }
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(600, easing = FastOutSlowInEasing)
+    )
+
+    // 微光动画
+    val shimmerOffset by infiniteTransition.animateFloat(
+        initialValue = -300f,
+        targetValue = 700f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(colors.gradient1, colors.gradient2)
+                )
+            )
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -304,7 +361,7 @@ fun title() {
                     modifier = Modifier.size(32.dp),
                     painter = painterResource("/images/minimize.png"),
                     contentDescription = "最小化",
-                    tint = Color.White.copy(alpha = 0.7f)
+                    tint = colors.textSecondary.copy(alpha = 0.7f)
                 )
             }
         }
@@ -314,48 +371,114 @@ fun title() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            // 应用图标
-            val iconImage: Painter = painterResource("images/callTheRoll.png")
-            Image(
-                painter = iconImage, contentDescription = "应用图标",
-                modifier = Modifier.padding(bottom = 24.dp).size(120.dp)
-            )
+            // 应用图标 - 带旋转光环
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(bottom = 20.dp)
+            ) {
+                // 外圈光环
+                Box(
+                    modifier = Modifier
+                        .size(140.dp)
+                        .rotate(rotation)
+                        .clip(CircleShape)
+                        .border(
+                            width = 2.dp,
+                            brush = Brush.sweepGradient(
+                                colors = listOf(
+                                    colors.primary.copy(alpha = 0.6f),
+                                    colors.accent.copy(alpha = 0.3f),
+                                    Color.Transparent,
+                                    colors.primary.copy(alpha = 0.6f)
+                                )
+                            ),
+                            shape = CircleShape
+                        )
+                )
+                val iconImage: Painter = painterResource("images/callTheRoll.png")
+                Image(
+                    painter = iconImage, contentDescription = "应用图标",
+                    modifier = Modifier.size(100.dp)
+                )
+            }
 
             // 应用名称
             Text(
                 text = "智能点名系统",
                 fontSize = 36.sp,
-                color = Color.White,
+                color = colors.textPrimary,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 6.dp)
             )
 
             Text(
-                text = "v${AppState.VERSION}",
-                fontSize = 16.sp,
-                color = Color.White.copy(alpha = 0.6f),
-                modifier = Modifier.padding(bottom = 32.dp)
+                text = "v${AppState.VERSION} · 高${2026}届${AppState.CLASS}班",
+                fontSize = 15.sp,
+                color = colors.textHint,
+                modifier = Modifier.padding(bottom = 28.dp)
             )
 
-            // 状态提示条
+            // 进度条
+            Box(
+                modifier = Modifier
+                    .width(320.dp)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(colors.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(animatedProgress)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(colors.primary, colors.accent)
+                            )
+                        )
+                )
+                // 微光效果
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(80.dp)
+                        .offset(x = shimmerOffset.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    colors.shimmer,
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 状态提示
             if (tips.isNotEmpty() && tips.isNotBlank()) {
                 val isProgress = tips.contains("加载") || tips.contains("整理")
                 val bgColor = if (isProgress) {
-                    Color.White.copy(alpha = 0.2f)
+                    colors.primary.copy(alpha = 0.12f)
                 } else {
-                    Color(0xFFE74C3C).copy(alpha = 0.4f)
+                    colors.error.copy(alpha = 0.12f)
                 }
+                val textColor = if (isProgress) colors.primary else colors.error
+
                 Box(
                     modifier = Modifier
                         .padding(bottom = 24.dp)
-                        .background(bgColor, RoundedCornerShape(24.dp))
+                        .background(bgColor, RoundedCornerShape(20.dp))
+                        .border(1.dp, textColor.copy(alpha = 0.2f), RoundedCornerShape(20.dp))
                         .padding(horizontal = 20.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = tips,
-                        fontSize = 24.sp,
-                        color = Color.White,
+                        fontSize = 20.sp,
+                        color = textColor,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -377,8 +500,8 @@ fun title() {
         ) {
             Text(
                 text = "Powered by Compose Desktop",
-                fontSize = 14.sp,
-                color = Color.White.copy(alpha = 0.5f),
+                fontSize = 13.sp,
+                color = colors.textHint.copy(alpha = 0.6f),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }

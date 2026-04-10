@@ -340,16 +340,13 @@ fun main() = application {
                 enter = fadeIn(tween(1000)) + slideInVertically(tween(500)),
                 exit = fadeOut(tween(300)) + slideOutVertically(tween(300))
             ) {
-                Surface(
-                    modifier = Modifier.fillMaxSize().graphicsLayer {
-                        shape = RoundedCornerShape(16.dp)
-                        clip = true
-                    },
-                    color = Color(AppState.accentColorMain)
-                ) {
-                    Box(
-                        modifier = Modifier.padding(10.dp).fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                com.rollcall.app.ui.theme.AppTheme {
+                    Surface(
+                        modifier = Modifier.fillMaxSize().graphicsLayer {
+                            shape = RoundedCornerShape(16.dp)
+                            clip = true
+                        },
+                        color = Color.Transparent
                     ) {
                         title()
                     }

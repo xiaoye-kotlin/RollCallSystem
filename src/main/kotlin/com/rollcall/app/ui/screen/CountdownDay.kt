@@ -13,6 +13,7 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import com.rollcall.app.state.AppState
+import com.rollcall.app.ui.theme.AppTheme
 
 
 fun calculateDaysBetweenDates(date1: String, date2: String): Long {
@@ -32,7 +33,7 @@ fun calculateDaysBetweenDates(date1: String, date2: String): Long {
 
 @Composable
 fun countdownDay() {
-
+    val colors = AppTheme.colors
     val date = AppState.date.collectAsState()
     var betweenDates: Long by remember { mutableStateOf(0) }
     betweenDates = calculateDaysBetweenDates(date.value, AppState.countdownTime)
@@ -48,37 +49,38 @@ fun countdownDay() {
                     text = AppState.countdownName,
                     fontSize = 25.sp,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = TextStyle(fontWeight = FontWeight.Bold),
+                    color = colors.accent
                 )
                 Text(
                     modifier = Modifier,
                     text = "就是今天！",
                     fontSize = 25.sp,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = colors.textPrimary
                 )
             } else {
                 Text(
                     modifier = Modifier,
                     text = "距离${AppState.countdownName}还有 ",
                     fontSize = 25.sp,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = colors.textPrimary
                 )
                 Text(
                     modifier = Modifier,
                     text = betweenDates.toString(),
                     fontSize = 25.sp,
                     overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = TextStyle(fontWeight = FontWeight.Bold),
+                    color = colors.accent
                 )
                 Text(
                     modifier = Modifier,
                     text = " 天",
                     fontSize = 25.sp,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = colors.textPrimary
                 )
             }
         }

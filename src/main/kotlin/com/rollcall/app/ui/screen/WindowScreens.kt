@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.*
 import com.rollcall.app.setWindowIcon
 import com.rollcall.app.state.AppState
+import com.rollcall.app.ui.theme.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -51,24 +52,27 @@ fun CountdownDayWindow(isVisible: Boolean) {
             }
         }
 
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(1000)) + slideInVertically(tween(500)),
-            exit = fadeOut(tween(300)) + slideOutVertically(tween(300))
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxSize().graphicsLayer {
-                    shape = RoundedCornerShape(16.dp)
-                    clip = true
-                    alpha = 0.7f
-                },
-                color = Color(AppState.accentColorFloating)
+        com.rollcall.app.ui.theme.AppTheme {
+            val colors = AppTheme.colors
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(1000)) + slideInVertically(tween(500)),
+                exit = fadeOut(tween(300)) + slideOutVertically(tween(300))
             ) {
-                Box(
-                    Modifier.padding(10.dp).fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.fillMaxSize().graphicsLayer {
+                        shape = RoundedCornerShape(16.dp)
+                        clip = true
+                        alpha = 0.92f
+                    },
+                    color = colors.surface
                 ) {
-                    countdownDay()
+                    Box(
+                        Modifier.padding(10.dp).fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        countdownDay()
+                    }
                 }
             }
         }
@@ -101,23 +105,26 @@ fun CountdownTimerWindow(isVisible: Boolean) {
             }
         }
 
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(1000)) + slideInVertically(tween(500)),
-            exit = fadeOut(tween(300)) + slideOutVertically(tween(300))
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxSize().graphicsLayer {
-                    shape = RoundedCornerShape(16.dp)
-                    clip = true
-                },
-                color = Color(AppState.accentColorFloating)
+        com.rollcall.app.ui.theme.AppTheme {
+            val colors = AppTheme.colors
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(1000)) + slideInVertically(tween(500)),
+                exit = fadeOut(tween(300)) + slideOutVertically(tween(300))
             ) {
-                Box(
-                    Modifier.padding(10.dp).fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.fillMaxSize().graphicsLayer {
+                        shape = RoundedCornerShape(16.dp)
+                        clip = true
+                    },
+                    color = colors.surface
                 ) {
-                    countdown()
+                    Box(
+                        Modifier.padding(10.dp).fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        countdown()
+                    }
                 }
             }
         }
@@ -150,24 +157,27 @@ fun MoreOptionsWindow(isVisible: Boolean) {
             }
         }
 
-        AnimatedVisibility(
-            visible = isVisible,
-            enter = fadeIn(tween(1000)) + slideInVertically(tween(500)),
-            exit = fadeOut(tween(300)) + slideOutVertically(tween(300))
-        ) {
-            Surface(
-                modifier = Modifier.fillMaxSize().graphicsLayer {
-                    shape = RoundedCornerShape(16.dp)
-                    clip = true
-                    alpha = 0.7f
-                },
-                color = Color(AppState.accentColorFloating)
+        com.rollcall.app.ui.theme.AppTheme {
+            val colors = AppTheme.colors
+            AnimatedVisibility(
+                visible = isVisible,
+                enter = fadeIn(tween(1000)) + slideInVertically(tween(500)),
+                exit = fadeOut(tween(300)) + slideOutVertically(tween(300))
             ) {
-                Box(
-                    Modifier.padding(10.dp).fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.fillMaxSize().graphicsLayer {
+                        shape = RoundedCornerShape(16.dp)
+                        clip = true
+                        alpha = 0.95f
+                    },
+                    color = colors.surface
                 ) {
-                    moreFunction()
+                    Box(
+                        Modifier.padding(10.dp).fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        moreFunction()
+                    }
                 }
             }
         }

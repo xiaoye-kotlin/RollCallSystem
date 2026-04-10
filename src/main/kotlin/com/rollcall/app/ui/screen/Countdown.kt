@@ -22,6 +22,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
 import com.rollcall.app.state.AppState
+import com.rollcall.app.ui.theme.AppTheme
 
 @Composable
 fun countdown() {
@@ -87,6 +88,8 @@ fun countdown() {
         }
     }
 
+    val countdownColors = AppTheme.colors
+
     Box(
         modifier = Modifier
             .fillMaxSize(),
@@ -106,10 +109,11 @@ fun countdown() {
                 Text(
                     modifier = Modifier
                         .padding(10.dp),
-                    text = "倒计时",
-                    fontSize = 80.sp,
+                    text = "⏱ 倒计时",
+                    fontSize = 50.sp,
                     textAlign = TextAlign.Center,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = countdownColors.textPrimary
                 )
             }
             Box(
@@ -118,35 +122,12 @@ fun countdown() {
                 contentAlignment = Alignment.Center
             ) {
                 when (countDownType.value) {
-                    1 -> {
+                    1, 2, 3, 4 -> {
                         Text(
                             text = formatTime(timeLeft),
                             fontSize = 100.sp,
-                            style = TextStyle(fontWeight = FontWeight.Bold)
-                        )
-                    }
-
-                    2 -> {
-                        Text(
-                            text = formatTime(timeLeft),
-                            fontSize = 100.sp,
-                            style = TextStyle(fontWeight = FontWeight.Bold)
-                        )
-                    }
-
-                    3 -> {
-                        Text(
-                            text = formatTime(timeLeft),
-                            fontSize = 100.sp,
-                            style = TextStyle(fontWeight = FontWeight.Bold)
-                        )
-                    }
-
-                    4 -> {
-                        Text(
-                            text = formatTime(timeLeft),
-                            fontSize = 100.sp,
-                            style = TextStyle(fontWeight = FontWeight.Bold)
+                            style = TextStyle(fontWeight = FontWeight.Bold),
+                            color = if (timeLeft <= 3000L) countdownColors.error else countdownColors.accent
                         )
                     }
                 }
