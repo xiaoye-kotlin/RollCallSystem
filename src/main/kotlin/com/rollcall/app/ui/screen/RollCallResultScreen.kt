@@ -26,6 +26,7 @@ import com.rollcall.app.drawStar
 import com.rollcall.app.setWindowIcon
 import com.rollcall.app.state.AppState
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.awt.GraphicsEnvironment
 import javax.swing.JFrame
@@ -81,12 +82,10 @@ fun ApplicationScope.RollCallResultWindow(
     ) {
         // 保持窗口置顶
         LaunchedEffect(Unit) {
-            withContext(Dispatchers.IO) {
-                while (true) {
-                    window.isMinimized = false
-                    window.isAlwaysOnTop = true
-                    kotlinx.coroutines.delay(1000)
-                }
+            while (isActive) {
+                window.isMinimized = false
+                window.isAlwaysOnTop = true
+                kotlinx.coroutines.delay(1000)
             }
         }
 

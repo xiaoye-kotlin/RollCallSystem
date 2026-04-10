@@ -33,17 +33,25 @@ import java.util.Locale
 
 /**
  * 快捷工具面板
- * 提供常用工具的快速入口：随机数生成器、今日课表摘要、随机选座等
+ * 提供常用工具的快速入口
  *
  * @param onClose 关闭面板回调
  * @param onOpenStatistics 打开统计面板回调
  * @param onOpenGroupGenerator 打开分组面板回调
+ * @param onOpenSchedule 打开课程表回调
+ * @param onOpenQuiz 打开抽题器回调
+ * @param onOpenSeatMap 打开座位表回调
+ * @param onOpenNoiseMeter 打开噪音检测回调
  */
 @Composable
 fun QuickToolsPanel(
     onClose: () -> Unit,
     onOpenStatistics: () -> Unit = {},
-    onOpenGroupGenerator: () -> Unit = {}
+    onOpenGroupGenerator: () -> Unit = {},
+    onOpenSchedule: () -> Unit = {},
+    onOpenQuiz: () -> Unit = {},
+    onOpenSeatMap: () -> Unit = {},
+    onOpenNoiseMeter: () -> Unit = {}
 ) {
     Window(
         onCloseRequest = onClose,
@@ -140,11 +148,12 @@ fun QuickToolsPanel(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     ToolButton(
-                        icon = "🔢",
-                        label = "随机数",
+                        icon = "🎯",
+                        label = "随机抽题",
                         accentColor = colors.success,
                         colors = colors,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = { onClose(); onOpenQuiz() }
                     )
                     ToolButton(
                         icon = "⏱",
@@ -163,16 +172,42 @@ fun QuickToolsPanel(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     ToolButton(
-                        icon = "🎯",
-                        label = "随机选座",
+                        icon = "💺",
+                        label = "随机座位",
                         accentColor = Color(0xFF9B59B6),
                         colors = colors,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        onClick = { onClose(); onOpenSeatMap() }
                     )
                     ToolButton(
-                        icon = "📋",
+                        icon = "📅",
                         label = "今日课表",
                         accentColor = Color(0xFF1ABC9C),
+                        colors = colors,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onClose(); onOpenSchedule() }
+                    )
+                }
+
+                Spacer(Modifier.height(10.dp))
+
+                // 第四行
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    ToolButton(
+                        icon = "🔊",
+                        label = "噪音检测",
+                        accentColor = Color(0xFFE74C3C),
+                        colors = colors,
+                        modifier = Modifier.weight(1f),
+                        onClick = { onClose(); onOpenNoiseMeter() }
+                    )
+                    ToolButton(
+                        icon = "🔢",
+                        label = "随机数",
+                        accentColor = Color(0xFF3498DB),
                         colors = colors,
                         modifier = Modifier.weight(1f)
                     )

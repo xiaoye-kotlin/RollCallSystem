@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 // 自定义倒置三角形形状
 object TriangleShape : Shape {
@@ -204,7 +205,7 @@ fun dragWindow() {
 
                 // 定期表情动画
                 LaunchedEffect(Unit) {
-                    while (true) {
+                    while (isActive) {
                         if (isFirstRun) {
                             val randomNumber = (1..2).random()
                             if (randomNumber == 1 && buttonState.value != "关闭") {

@@ -97,16 +97,20 @@ fun main() = application {
     // ==================== 心跳与版本上报 ====================
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            while (true) {
-                operating++
-                // 检查更新标记
-                if (FileHelper.readFromFile("D:/Xiaoye/Updating") == "The System is updating...") {
-                    exitProcess(0)
+            while (isActive) {
+                try {
+                    operating++
+                    // 检查更新标记
+                    if (FileHelper.readFromFile("D:/Xiaoye/Updating") == "The System is updating...") {
+                        exitProcess(0)
+                    }
+                    FileHelper.writeToFile("D:/Xiaoye/Version", AppState.VERSION.toString())
+                    FileHelper.writeToFile("D:/Xiaoye/Operating", operating.toString())
+                    val runningTime = FileHelper.readFromFile("D:/Xiaoye/RunningTime").toIntOrNull() ?: 0
+                    FileHelper.writeToFile("D:/Xiaoye/RunningTime", (runningTime + 1).toString())
+                } catch (e: Exception) {
+                    println("心跳异常: ${e.message}")
                 }
-                FileHelper.writeToFile("D:/Xiaoye/Version", AppState.VERSION.toString())
-                FileHelper.writeToFile("D:/Xiaoye/Operating", operating.toString())
-                val runningTime = FileHelper.readFromFile("D:/Xiaoye/RunningTime").toIntOrNull() ?: 0
-                FileHelper.writeToFile("D:/Xiaoye/RunningTime", (runningTime + 1).toString())
                 delay(1000)
             }
         }
@@ -117,50 +121,54 @@ fun main() = application {
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            while (true) {
-                AppState.url = NetworkHelper.getUrl()
-                println("网络状态: ${NetworkHelper.isInternetAvailable()}")
-                if (AppState.url != "No Wifi" && AppState.url.contains("http")) {
-                    AppState.setIsOpen(NetworkHelper.getIsOpen().toBoolean())
-                    AppState.setIsVoiceIdentify(NetworkHelper.getIsVoiceIdentifyOpen().toBoolean())
-                    AppState.setIsTime(NetworkHelper.getIsTimeOpen().toBoolean())
-                    AppState.setIsCountDownDayOpen(NetworkHelper.getCountDownDaySwitch().toBoolean())
-                    AppState.setIsCountDownOpen(NetworkHelper.getCountDownSwitch().toBoolean())
-                    AppState.setIsWallpaper(NetworkHelper.getWallpaperSwitch().toBoolean())
-                    AppState.setIsDeleteWallpaper(NetworkHelper.getDeleteWallpaperSwitch().toBoolean())
+            while (isActive) {
+                try {
+                    AppState.url = NetworkHelper.getUrl()
+                    println("网络状态: ${NetworkHelper.isInternetAvailable()}")
+                    if (AppState.url != "No Wifi" && AppState.url.contains("http")) {
+                        AppState.setIsOpen(NetworkHelper.getIsOpen().toBoolean())
+                        AppState.setIsVoiceIdentify(NetworkHelper.getIsVoiceIdentifyOpen().toBoolean())
+                        AppState.setIsTime(NetworkHelper.getIsTimeOpen().toBoolean())
+                        AppState.setIsCountDownDayOpen(NetworkHelper.getCountDownDaySwitch().toBoolean())
+                        AppState.setIsCountDownOpen(NetworkHelper.getCountDownSwitch().toBoolean())
+                        AppState.setIsWallpaper(NetworkHelper.getWallpaperSwitch().toBoolean())
+                        AppState.setIsDeleteWallpaper(NetworkHelper.getDeleteWallpaperSwitch().toBoolean())
 
-                    if (!isOpen.value) exitProcess(0)
+                        if (!isOpen.value) exitProcess(0)
 
-                    // 彩蛋检测（每100秒最多触发一次）
-                    val now = System.currentTimeMillis()
-                    if (now - lastTrueTimestamp > 100000) {
-                        if (NetworkHelper.getEasterEggSwitch().toBooleanStrictOrNull() == true) {
-                            AppState.setIsEasterEgg(true)
-                            lastTrueTimestamp = now
-                        } else {
-                            AppState.setIsEasterEgg(false)
+                        // 彩蛋检测（每100秒最多触发一次）
+                        val now = System.currentTimeMillis()
+                        if (now - lastTrueTimestamp > 100000) {
+                            if (NetworkHelper.getEasterEggSwitch().toBooleanStrictOrNull() == true) {
+                                AppState.setIsEasterEgg(true)
+                                lastTrueTimestamp = now
+                            } else {
+                                AppState.setIsEasterEgg(false)
+                            }
+                        }
+
+                        // 更新幸运学生和倒霉学生列表
+                        updateSpecialStudentList(NetworkHelper.getLuckyGuy(), "LuckyGuy") { AppState.setLuckyGuy(it) }
+                        updateSpecialStudentList(NetworkHelper.getPoolGuy(), "PoolGuy") { AppState.setPoolGuy(it) }
+
+                        // 更新时间信息
+                        if (isTime.value && AppState.timeApi != "" && AppState.timeApi.contains("http")) {
+                            val timeData = NetworkHelper.getTimeData()
+                            AppState.setWeek(parseTimeJsonResponse(timeData).weekday)
+                            val dateStr = parseTimeJsonResponse(timeData).date
+                            if (dateStr.length >= 16) {
+                                AppState.setTime(dateStr.substring(11, 16))
+                            }
+                        }
+
+                        // 更新日期（倒数日使用）
+                        if (isCountDownDayOpen.value && AppState.timeApi != "" && AppState.timeApi.contains("http")) {
+                            val rawDate = parseTimeJsonResponse(NetworkHelper.getTimeData()).date
+                            rawDate.split(" ").getOrNull(0)?.let { AppState.setDate(it) }
                         }
                     }
-
-                    // 更新幸运学生和倒霉学生列表
-                    updateSpecialStudentList(NetworkHelper.getLuckyGuy(), "LuckyGuy") { AppState.setLuckyGuy(it) }
-                    updateSpecialStudentList(NetworkHelper.getPoolGuy(), "PoolGuy") { AppState.setPoolGuy(it) }
-
-                    // 更新时间信息
-                    if (isTime.value && AppState.timeApi != "" && AppState.timeApi.contains("http")) {
-                        val timeData = NetworkHelper.getTimeData()
-                        AppState.setWeek(parseTimeJsonResponse(timeData).weekday)
-                        val dateStr = parseTimeJsonResponse(timeData).date
-                        if (dateStr.length >= 16) {
-                            AppState.setTime(dateStr.substring(11, 16))
-                        }
-                    }
-
-                    // 更新日期（倒数日使用）
-                    if (isCountDownDayOpen.value && AppState.timeApi != "" && AppState.timeApi.contains("http")) {
-                        val rawDate = parseTimeJsonResponse(NetworkHelper.getTimeData()).date
-                        rawDate.split(" ").getOrNull(0)?.let { AppState.setDate(it) }
-                    }
+                } catch (e: Exception) {
+                    println("远程配置轮询异常: ${e.message}")
                 }
                 delay(3000)
             }
@@ -169,9 +177,13 @@ fun main() = application {
 
     // ==================== 在线状态上报 ====================
     LaunchedEffect(Unit) {
-        while (true) {
-            if (AppState.url != "" && AppState.url.contains("http")) {
-                NetworkHelper.getOnline()
+        while (isActive) {
+            try {
+                if (AppState.url != "" && AppState.url.contains("http")) {
+                    NetworkHelper.getOnline()
+                }
+            } catch (e: Exception) {
+                println("在线状态上报异常: ${e.message}")
             }
             delay(10000)
         }
@@ -359,7 +371,19 @@ fun main() = application {
     val isChangeFace = AppState.isChangeFace.collectAsState()
     var isRunCountdownDay by remember { mutableStateOf(false) }
 
+    // 工具面板状态
+    var showScheduleWindow by remember { mutableStateOf(false) }
+    var showStatisticsPanel by remember { mutableStateOf(false) }
+    var showGroupGenerator by remember { mutableStateOf(false) }
+    var showQuickTools by remember { mutableStateOf(false) }
+    var showQuizScreen by remember { mutableStateOf(false) }
+    var showSeatMapScreen by remember { mutableStateOf(false) }
+    var showNoiseMeterScreen by remember { mutableStateOf(false) }
+
     if (floatingWindowVisible && !isEasterEgg.value) {
+        // 上下课通知系统
+        ClassNotificationHost()
+
         // 倒数日窗口
         if (date.value != "无" && isCountDownDayOpen.value &&
             AppState.countdownName != "无" && AppState.countdownTime != "无"
@@ -396,6 +420,37 @@ fun main() = application {
             countDownType = countDownType.value,
             isChangeFace = isChangeFace.value
         )
+
+        // ==================== 工具面板窗口 ====================
+        if (showScheduleWindow) {
+            ScheduleWindow(onClose = { showScheduleWindow = false })
+        }
+        if (showStatisticsPanel) {
+            StatisticsPanel(onClose = { showStatisticsPanel = false })
+        }
+        if (showGroupGenerator) {
+            GroupGeneratorPanel(onClose = { showGroupGenerator = false })
+        }
+        if (showQuickTools) {
+            QuickToolsPanel(
+                onClose = { showQuickTools = false },
+                onOpenStatistics = { showStatisticsPanel = true },
+                onOpenGroupGenerator = { showGroupGenerator = true },
+                onOpenSchedule = { showScheduleWindow = true },
+                onOpenQuiz = { showQuizScreen = true },
+                onOpenSeatMap = { showSeatMapScreen = true },
+                onOpenNoiseMeter = { showNoiseMeterScreen = true }
+            )
+        }
+        if (showQuizScreen) {
+            RandomQuizScreen(onClose = { showQuizScreen = false })
+        }
+        if (showSeatMapScreen) {
+            SeatMapScreen(onClose = { showSeatMapScreen = false })
+        }
+        if (showNoiseMeterScreen) {
+            NoiseMeterScreen(onClose = { showNoiseMeterScreen = false })
+        }
     }
 
     // ==================== 点名结果页面 ====================

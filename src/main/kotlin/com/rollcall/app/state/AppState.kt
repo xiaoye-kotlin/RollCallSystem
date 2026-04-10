@@ -183,6 +183,16 @@ object AppState {
     val isAlarmHasBeenHeard: StateFlow<Boolean> get() = _isAlarmHasBeenHeard
     fun setIsAlarmHasBeenHeard(value: Boolean) { _isAlarmHasBeenHeard.value = value }
 
+    /** 课程表窗口开关 */
+    private val _isScheduleOpen = MutableStateFlow(false)
+    val isScheduleOpen: StateFlow<Boolean> get() = _isScheduleOpen
+    fun setIsScheduleOpen(value: Boolean) { _isScheduleOpen.value = value }
+
+    /** 快捷工具面板开关 */
+    private val _isQuickToolsOpen = MutableStateFlow(false)
+    val isQuickToolsOpen: StateFlow<Boolean> get() = _isQuickToolsOpen
+    fun setIsQuickToolsOpen(value: Boolean) { _isQuickToolsOpen.value = value }
+
     // ==================== 随机点名逻辑 ====================
 
     /** 最近被点到的学生记录（防止连续重复） */

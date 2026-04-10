@@ -34,6 +34,7 @@ import com.rollcall.app.state.AppState
 import com.rollcall.app.ui.theme.AppTheme
 import com.rollcall.app.util.FileHelper
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import java.util.*
 
 /**
@@ -75,7 +76,7 @@ fun recognizeWord() {
 
     // 主循环：截屏→OCR→AI分析
     LaunchedEffect(Unit) {
-        while (true) {
+        while (isActive) {
             if (!isLearning.value && isRetry) {
                 isRetry = false
                 hasAiAnswered = false
