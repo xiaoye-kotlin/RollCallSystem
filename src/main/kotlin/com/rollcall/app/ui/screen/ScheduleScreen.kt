@@ -415,12 +415,17 @@ data class ClassInfo(
 /**
  * 根据当前时间和今日课程表，计算当前正在上课、下节课、剩余时间等信息
  */
+/**
+ * 将 "H:mm" 或 "HH:mm" 格式的时间字符串规范化为 "HH:mm"
+ */
+private fun normalizeTimeStr(time: String): String =
+    if (time.length == 4) "0$time" else time
+
 private fun computeCurrentClassInfo(currentTimeStr: String, schedule: List<Subject>?): ClassInfo {
     if (schedule.isNullOrEmpty() || currentTimeStr == "无") return ClassInfo()
 
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
-    val formattedTime = if (currentTimeStr.length == 4) "0$currentTimeStr" else currentTimeStr
-    val now = try { LocalTime.parse(formattedTime, formatter) } catch (_: Exception) { return ClassInfo() }
+    val now = try { LocalTime.parse(normalizeTimeStr(currentTimeStr), formatter) } catch (_: Exception) { return ClassInfo() }
 
     var currentIndex = -1
     var nextIndex = -1
@@ -493,8 +498,7 @@ private fun computeCurrentClassInfo(currentTimeStr: String, schedule: List<Subje
 
 private fun parseTime(str: String, formatter: DateTimeFormatter): LocalTime? {
     return try {
-        val formatted = if (str.length == 4) "0$str" else str
-        LocalTime.parse(formatted, formatter)
+        LocalTime.parse(normalizeTimeStr(str), formatter)
     } catch (_: Exception) {
         null
     }

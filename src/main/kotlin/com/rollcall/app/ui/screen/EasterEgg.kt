@@ -355,6 +355,7 @@ fun classIdentity() {
 @Composable
 fun graduationSentences() {
     // 毕业主题寄语
+    val className = "高三${AppState.CLASS}班"
     val texts = listOf(
         "三年前的秋天，我们在这里相遇",
         "教室里的笑声、走廊上的奔跑",
@@ -365,7 +366,7 @@ fun graduationSentences() {
         "但刻在心底的名字永远不会褪色",
         "",
         "愿你历尽千帆，归来仍是少年",
-        "高三${AppState.CLASS}班的故事，未完待续……"
+        "${className}的故事，未完待续……"
     )
 
     val sentences = remember { mutableStateListOf(*Array(texts.size) { false }) }

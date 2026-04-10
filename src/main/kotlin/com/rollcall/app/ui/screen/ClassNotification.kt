@@ -91,7 +91,7 @@ fun ClassNotificationHost() {
                     }
                 }
             }
-            delay(10000) // 每10秒检查一次
+            delay(3000) // 每3秒检查一次，确保不遗漏短时间窗口的通知
         }
     }
 
@@ -220,6 +220,12 @@ private fun NotificationPopupWindow(
 }
 
 /**
+ * 将 "H:mm" 或 "HH:mm" 格式的时间字符串规范化为 "HH:mm"
+ */
+private fun normalizeTimeStr(time: String): String =
+    if (time.length == 4) "0$time" else time
+
+/**
  * 检查是否需要触发通知
  * - 上课前2分钟提醒
  * - 下课前1分钟提醒
@@ -230,9 +236,8 @@ private fun checkNotificationTrigger(
     schedule: List<Subject>
 ): ClassNotification? {
     val formatter = DateTimeFormatter.ofPattern("HH:mm")
-    val formattedTime = if (currentTimeStr.length == 4) "0$currentTimeStr" else currentTimeStr
     val now = try {
-        LocalTime.parse(formattedTime, formatter)
+        LocalTime.parse(normalizeTimeStr(currentTimeStr), formatter)
     } catch (_: Exception) {
         return null
     }
@@ -305,8 +310,7 @@ private fun checkNotificationTrigger(
 
 private fun parseTimeForNotification(str: String, formatter: DateTimeFormatter): LocalTime? {
     return try {
-        val formatted = if (str.length == 4) "0$str" else str
-        LocalTime.parse(formatted, formatter)
+        LocalTime.parse(normalizeTimeStr(str), formatter)
     } catch (_: Exception) {
         null
     }

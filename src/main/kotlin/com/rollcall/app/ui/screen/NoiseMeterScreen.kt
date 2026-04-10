@@ -46,7 +46,7 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
     var peakLevel by remember { mutableStateOf(0.3f) }
     var history by remember { mutableStateOf(List(30) { 0.2f }) }
 
-    // 模拟噪音检测（真实项目中接入麦克风API）
+    // 模拟噪音检测（占位逻辑 — 真实项目中应接入 javax.sound.sampled 或平台麦克风API）
     LaunchedEffect(Unit) {
         while (isActive) {
             val newLevel = (noiseLevel + (Random.nextFloat() - 0.5f) * 0.15f).coerceIn(0.05f, 1f)
