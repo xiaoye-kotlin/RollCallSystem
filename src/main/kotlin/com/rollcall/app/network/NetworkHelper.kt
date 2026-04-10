@@ -44,15 +44,16 @@ object NetworkHelper {
         return withContext(Dispatchers.IO) {
             try {
                 val request = Request.Builder().url(url).build()
-                val response = client.newCall(request).execute()
-                if (response.isSuccessful) {
-                    val body = response.body.string()
-                    val available = body.contains("网络正常")
-                    AppState.setIsInternetAvailable(available)
-                    available
-                } else {
-                    AppState.setIsInternetAvailable(false)
-                    false
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val body = response.body.string()
+                        val available = body.contains("网络正常")
+                        AppState.setIsInternetAvailable(available)
+                        available
+                    } else {
+                        AppState.setIsInternetAvailable(false)
+                        false
+                    }
                 }
             } catch (e: IOException) {
                 AppState.setIsInternetAvailable(false)
