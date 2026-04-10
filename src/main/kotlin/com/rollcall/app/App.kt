@@ -122,6 +122,8 @@ fun main() = application {
                 println("网络状态: ${NetworkHelper.isInternetAvailable()}")
                 if (AppState.url != "No Wifi" && AppState.url.contains("http")) {
                     AppState.setIsOpen(NetworkHelper.getIsOpen().toBoolean())
+                    AppState.downloadUrl = NetworkHelper.getDownloadUrl()
+                    AppState.timeApi = NetworkHelper.getTimeApi()
                     AppState.setIsVoiceIdentify(NetworkHelper.getIsVoiceIdentifyOpen().toBoolean())
                     AppState.setIsTime(NetworkHelper.getIsTimeOpen().toBoolean())
                     AppState.setIsCountDownDayOpen(NetworkHelper.getCountDownDaySwitch().toBoolean())
@@ -129,7 +131,7 @@ fun main() = application {
                     AppState.setIsWallpaper(NetworkHelper.getWallpaperSwitch().toBoolean())
                     AppState.setIsDeleteWallpaper(NetworkHelper.getDeleteWallpaperSwitch().toBoolean())
 
-                    if (!isOpen.value) exitProcess(0)
+                    if (!AppState.isOpen.value) exitProcess(0)
 
                     // 彩蛋检测（每100秒最多触发一次）
                     val now = System.currentTimeMillis()

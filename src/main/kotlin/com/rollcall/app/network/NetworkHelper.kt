@@ -22,6 +22,9 @@ import kotlin.coroutines.cancellation.CancellationException
  * 负责所有网络请求、文件下载、远程配置获取等操作
  */
 object NetworkHelper {
+    private const val DEFAULT_API_BASE_URL = "http://xy.leleosd.top"
+    private const val DEFAULT_MODEL_DOWNLOAD_URL =
+        "https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.zip"
 
     /** 默认HTTP客户端 */
     private val client = OkHttpClient()
@@ -77,10 +80,12 @@ object NetworkHelper {
 
     /** 获取全局API域名 */
     suspend fun getUrl(): String {
-        return fetchConfigValue(
+        val fallbackUrl = AppState.url.asHttpUrlOrNull() ?: DEFAULT_API_BASE_URL
+        val remoteUrl = fetchConfigValue(
             "https://sharechain.qq.com/24611a0b19af84dfd745128cef471194",
-            "【URL】", "http://202603.allfor.today"
+            "【URL】", fallbackUrl
         )
+        return remoteUrl.asHttpUrlOrNull() ?: fallbackUrl
     }
 
     /** 获取程序开关状态 */
@@ -110,34 +115,38 @@ object NetworkHelper {
 
     /** 获取文件下载域名 */
     suspend fun getDownloadUrl(): String {
-        return fetchConfigValue(
+        val fallbackUrl = AppState.downloadUrl.asHttpUrlOrNull() ?: DEFAULT_MODEL_DOWNLOAD_URL
+        val remoteUrl = fetchConfigValue(
             "https://sharechain.qq.com/639ed2d6e00210eb5a61af91ade279c4",
             "【DOWNLOAD】",
-            "https://alphacephei.com/vosk/models/vosk-model-small-cn-0.22.zip"
+            fallbackUrl
         )
+        return remoteUrl.asHttpUrlOrNull() ?: fallbackUrl
     }
 
     /** 获取时间API地址 */
     suspend fun getTimeApi(): String {
-        if (!isInternetAvailable()) return "No Wifi"
-        return fetchString("${AppState.url}/TimeApi.txt", "无")
+        if (!isInternetAvailable()) return AppState.timeApi.asHttpUrlOrNull().orEmpty()
+        val fallbackUrl = AppState.timeApi.asHttpUrlOrNull().orEmpty()
+        val timeApi = fetchString("${AppState.url}/TimeApi.txt", fallbackUrl)
+        return timeApi.asHttpUrlOrNull() ?: fallbackUrl
     }
 
     /** 获取时间数据 */
     suspend fun getTimeData(): String {
-        if (!isInternetAvailable()) return "No Wifi"
+        if (!isInternetAvailable()) return ""
         return fetchString(AppState.timeApi, "无")
     }
 
     /** 获取学生名单 */
     suspend fun getNameList(): String {
-        if (!isInternetAvailable()) return "No Wifi"
+        if (!isInternetAvailable()) return ""
         return fetchString("${AppState.url}/NameList${AppState.CLASS}.txt", "无")
     }
 
     /** 获取课程表 */
     suspend fun getSubjectList(): String {
-        if (!isInternetAvailable()) return "No Wifi"
+        if (!isInternetAvailable()) return ""
         return fetchString("${AppState.url}/SubjectList${AppState.CLASS}.txt", "无")
     }
 
@@ -351,7 +360,7 @@ object NetworkHelper {
                     }
                 }
             } catch (e: IOException) {
-                e.printStackTrace()
+                println("获取配置失败[$tag]: ${e.message}")
                 default
             } catch (_: CancellationException) {
                 default
@@ -372,12 +381,17 @@ object NetworkHelper {
                     }
                 }
             } catch (e: IOException) {
-                e.printStackTrace()
+                println("请求失败[$url]: ${e.message}")
                 default
             } catch (_: CancellationException) {
                 default
             }
         }
+    }
+
+    private fun String?.asHttpUrlOrNull(): String? {
+        val value = this?.trim().orEmpty()
+        return value.takeIf { it.startsWith("http://") || it.startsWith("https://") }
     }
 
     /** 从URL中提取文件名 */
