@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -67,7 +68,7 @@ fun ScheduleWindow(onClose: () -> Unit) {
     ) {
         setWindowIcon()
 
-        com.rollcall.app.ui.theme.AppTheme {
+        AppTheme {
             val colors = AppTheme.colors
             val week = AppState.week.collectAsState()
             val time = AppState.time.collectAsState()
@@ -697,16 +698,27 @@ private fun WidgetHeaderCell(
     isToday: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val animatedBorderColor by animateColorAsState(
+        targetValue = if (isToday) Color(0xFF8D7DFF) else Color.White.copy(alpha = 0.8f),
+        animationSpec = tween(240)
+    )
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isToday) 1.02f else 1f,
+        animationSpec = tween(240)
+    )
+
     Column(
         modifier = modifier
+            .scale(animatedScale)
             .clip(RoundedCornerShape(16.dp))
             .background(if (isToday) Color(0xFFF0E6FF) else background.copy(alpha = 0.9f))
             .border(
                 width = if (isToday) 2.dp else 1.dp,
-                color = if (isToday) Color(0xFF8D7DFF) else Color.White.copy(alpha = 0.8f),
+                color = animatedBorderColor,
                 shape = RoundedCornerShape(16.dp)
             )
-            .padding(horizontal = 4.dp, vertical = 8.dp),
+            .padding(horizontal = 4.dp, vertical = 8.dp)
+            .animateContentSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -801,9 +813,18 @@ private fun WeeklyCourseCell(
         isToday -> Color(0xFF8D7DFF)
         else -> Color(0xFFD8D2E8)
     }
+    val animatedAccentColor by animateColorAsState(
+        targetValue = accentColor,
+        animationSpec = tween(220)
+    )
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isCurrent) 1.03f else if (isToday) 1.015f else 1f,
+        animationSpec = tween(220)
+    )
 
     Column(
         modifier = modifier
+            .scale(animatedScale)
             .clip(RoundedCornerShape(16.dp))
             .background(
                 when {
@@ -815,20 +836,21 @@ private fun WeeklyCourseCell(
             )
             .border(
                 width = if (isCurrent) 3.dp else if (isToday) 2.dp else 1.dp,
-                color = accentColor.copy(alpha = if (subject == null) 0.35f else if (isCurrent) 0.95f else 0.85f),
+                color = animatedAccentColor.copy(alpha = if (subject == null) 0.35f else if (isCurrent) 0.95f else 0.85f),
                 shape = RoundedCornerShape(16.dp)
             )
             .drawBehind {
                 if (isSessionStart) {
                     drawRoundRect(
-                        color = accentColor.copy(alpha = 0.55f),
+                        color = animatedAccentColor.copy(alpha = 0.55f),
                         topLeft = Offset.Zero,
                         size = size.copy(height = 3.dp.toPx()),
                         cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx())
                     )
                 }
             }
-            .padding(horizontal = 3.dp, vertical = 10.dp),
+            .padding(horizontal = 3.dp, vertical = 10.dp)
+            .animateContentSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -868,7 +890,7 @@ private fun WeeklyCourseCell(
                     text = "正在上课",
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                    color = accentColor
+                    color = animatedAccentColor
                 )
             } else if (isToday) {
                 Spacer(Modifier.height(4.dp))
@@ -876,7 +898,7 @@ private fun WeeklyCourseCell(
                     text = "今天",
                     fontSize = 9.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = accentColor
+                    color = animatedAccentColor
                 )
             }
         }

@@ -3,10 +3,8 @@ package com.rollcall.app.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -27,7 +25,6 @@ const val DROP_TARGET_QUICK_TOOLS = 100
 @Composable
 fun moreFunction(isCountDownEnabled: Boolean, currentDropTarget: Int) {
     val colors = AppTheme.colors
-    val scrollState = rememberScrollState()
 
     Box(
         modifier = Modifier
@@ -37,8 +34,7 @@ fun moreFunction(isCountDownEnabled: Boolean, currentDropTarget: Int) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
-                .verticalScroll(scrollState),
+                .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
@@ -105,14 +101,24 @@ fun moreFunction(isCountDownEnabled: Boolean, currentDropTarget: Int) {
                 }
             } else {
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "当前倒计时功能未开启",
-                    fontSize = 14.sp,
-                    color = colors.textHint
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colors.cardBackground)
+                        .border(1.dp, colors.cardBorder, RoundedCornerShape(16.dp))
+                        .padding(horizontal = 16.dp, vertical = 18.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "倒计时已在点击面板中开启",
+                        fontSize = 14.sp,
+                        color = colors.textHint
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }

@@ -149,6 +149,15 @@ fun title() {
         }
     }
 
+    fun applyAiRemoteConfig(config: NetworkHelper.AiRemoteConfig) {
+        AppState.aiApiUrl = config.apiUrl
+        AppState.aiApiKey = config.apiKey
+        AppState.aiModel = config.model
+        AppState.aiTemperature = config.temperature
+        AppState.aiPrompt = config.prompt
+        AppState.learningAutoIntervalSeconds = config.autoIntervalSeconds
+    }
+
     suspend fun persistCoreData(studentJson: String, subjectJson: String, countdownName: String, countdownTime: String) =
         coroutineScope {
             val jobs = mutableListOf<kotlinx.coroutines.Deferred<Unit>>()
@@ -223,6 +232,7 @@ fun title() {
         AppState.setIsVoiceIdentify(remoteConfig.isVoiceIdentifyOpen)
         AppState.countdownName = remoteConfig.countdownName
         AppState.countdownTime = remoteConfig.countdownTime
+        applyAiRemoteConfig(remoteConfig.aiConfig)
 
         tips = "并行加载课程和名单..."
         val studentDeferred = async(Dispatchers.IO) {

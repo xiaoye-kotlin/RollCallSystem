@@ -1,7 +1,11 @@
 package com.rollcall.app.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -62,8 +67,10 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
     var history by remember { mutableStateOf(List(36) { 0f }) }
     var statusMessage by remember { mutableStateOf("正在连接麦克风...") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showContent by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
+        showContent = true
         captureMicrophoneNoise(
             onReading = { reading ->
                 noiseLevel = reading.normalizedLevel
@@ -126,25 +133,30 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
                     )
                     .border(1.dp, colors.cardBorder.copy(alpha = 0.75f), RoundedCornerShape(24.dp))
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(20.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                AnimatedVisibility(
+                    visible = showContent,
+                    enter = fadeIn(tween(240)) + slideInVertically(tween(260)) { -it / 6 }
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🔊", fontSize = 28.sp)
-                        Spacer(Modifier.width(8.dp))
-                        Column {
-                            Text("噪音检测", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
-                            Text(
-                                text = if (errorMessage == null) "实时麦克风采样" else "麦克风不可用",
-                                fontSize = 12.sp,
-                                color = colors.textHint
-                            )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🔊", fontSize = 28.sp)
+                            Spacer(Modifier.width(8.dp))
+                            Column {
+                                Text("噪音检测", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                                Text(
+                                    text = if (errorMessage == null) "实时麦克风采样" else "麦克风不可用",
+                                    fontSize = 12.sp,
+                                    color = colors.textHint
+                                )
+                            }
                         }
-                    }
-                    IconButton(onClick = onClose) {
-                        Icon(Icons.Default.Close, "关闭", tint = colors.textSecondary)
+                        IconButton(onClick = onClose) {
+                            Icon(Icons.Default.Close, "关闭", tint = colors.textSecondary)
+                        }
                     }
                 }
 
@@ -155,6 +167,7 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
                         .background(Color.White.copy(alpha = 0.76f))
                         .border(1.dp, colors.cardBorder.copy(alpha = 0.7f), RoundedCornerShape(14.dp))
                         .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .animateContentSize()
                 ) {
                     Text(
                         text = errorMessage ?: "当前为真实麦克风输入强度；显示的是相对 dB 估算值，不是校准后的物理分贝。",
@@ -173,7 +186,7 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
                         .padding(horizontal = 40.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Canvas(modifier = Modifier.size(190.dp)) {
+                    Canvas(modifier = Modifier.size(190.dp).animateContentSize()) {
                         val strokeWidth = 16f
                         val arcSize = Size(size.width - strokeWidth, size.height - strokeWidth)
                         val topLeft = Offset(strokeWidth / 2, strokeWidth / 2)
@@ -219,6 +232,7 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
                         .background(levelColor.copy(alpha = 0.12f))
                         .border(1.dp, levelColor.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
                         .padding(horizontal = 20.dp, vertical = 8.dp)
+                        .animateContentSize()
                 ) {
                     Text(levelText, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = levelColor)
                 }
@@ -290,10 +304,12 @@ private fun NoiseMetricCard(
 ) {
     Column(
         modifier = modifier
+            .scale(if (title == "当前") 1.01f else 1f)
             .clip(RoundedCornerShape(16.dp))
             .background(Color.White.copy(alpha = 0.78f))
             .border(1.dp, accentColor.copy(alpha = 0.2f), RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 12.dp)
+            .animateContentSize()
     ) {
         Text(title, fontSize = 12.sp, color = accentColor, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(4.dp))

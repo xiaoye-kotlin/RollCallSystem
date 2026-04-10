@@ -28,7 +28,7 @@ import javax.imageio.ImageIO
 import kotlin.math.max
 
 private const val OPTIONS_WINDOW_WIDTH_DP = 340
-private const val OPTIONS_WINDOW_HEIGHT_DP = 720
+private const val OPTIONS_WINDOW_HEIGHT_DP = 860
 private const val OPTIONS_WINDOW_MARGIN_RIGHT_PX = 180
 private const val DRAG_BALL_SIZE_PX = 100
 
@@ -200,7 +200,6 @@ fun MoreOptionsWindow(isVisible: Boolean, isCountDownEnabled: Boolean, currentDr
  */
 @Composable
 fun ApplicationScope.FloatingWindow(
-    isCountDownOpen: Boolean,
     countDownType: Int,
     isChangeFace: Boolean,
     onDropTargetChanged: (Int) -> Unit,
@@ -301,7 +300,7 @@ fun ApplicationScope.FloatingWindow(
                             }
                             javax.swing.SwingUtilities.invokeLater { window.location = loc }
                             onDropTargetChanged(DROP_TARGET_NONE)
-                            handleWindowDrop(loc, isCountDownOpen, countDownType, onOpenQuickTools)
+                            handleWindowDrop(loc, countDownType, onOpenQuickTools)
                         }
                     }
                 })
@@ -321,7 +320,7 @@ fun ApplicationScope.FloatingWindow(
                                         window.toFront()
                                     }
                                     onDropTargetChanged(
-                                        detectDropTarget(newLoc, isCountDownOpen, countDownType)
+                                        detectDropTarget(newLoc, countDownType)
                                     )
                                     lastMouseLocation = e.locationOnScreen.let { Pair(it.x, it.y) }
                                 }
@@ -343,17 +342,16 @@ fun ApplicationScope.FloatingWindow(
  */
 private fun handleWindowDrop(
     location: java.awt.Point,
-    isCountDownOpen: Boolean,
     countDownType: Int,
     onOpenQuickTools: () -> Unit
 ) {
-    when (detectDropTarget(location, isCountDownOpen, countDownType)) {
+    when (detectDropTarget(location, countDownType)) {
         DROP_TARGET_QUICK_TOOLS -> {
             onOpenQuickTools()
             return
         }
         1, 2, 3, 4 -> {
-            AppState.setCountDownType(detectDropTarget(location, isCountDownOpen, countDownType))
+            AppState.setCountDownType(detectDropTarget(location, countDownType))
             return
         }
     }
@@ -361,7 +359,6 @@ private fun handleWindowDrop(
 
 private fun detectDropTarget(
     location: java.awt.Point,
-    isCountDownOpen: Boolean,
     countDownType: Int
 ): Int {
     val panelBounds = getOptionsPanelBounds()
@@ -376,12 +373,12 @@ private fun detectDropTarget(
         return DROP_TARGET_QUICK_TOOLS
     }
 
-    if (isCountDownOpen && countDownType == 0) {
+    if (countDownType == 0) {
         return when {
-            localY in 350..435 -> 1
-            localY in 445..530 -> 2
-            localY in 540..625 -> 3
-            localY in 635..710 -> 4
+            localY in 330..430 -> 1
+            localY in 431..531 -> 2
+            localY in 532..632 -> 3
+            localY in 633..760 -> 4
             else -> DROP_TARGET_NONE
         }
     }

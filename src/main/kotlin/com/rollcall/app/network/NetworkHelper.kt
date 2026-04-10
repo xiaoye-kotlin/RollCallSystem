@@ -45,7 +45,17 @@ object NetworkHelper {
         val downloadUrl: String,
         val timeApi: String,
         val countdownName: String,
-        val countdownTime: String
+        val countdownTime: String,
+        val aiConfig: AiRemoteConfig
+    )
+
+    data class AiRemoteConfig(
+        val apiUrl: String,
+        val apiKey: String,
+        val model: String,
+        val temperature: Double,
+        val prompt: String,
+        val autoIntervalSeconds: Long
     )
 
     // ==================== 网络状态检测 ====================
@@ -256,6 +266,43 @@ object NetworkHelper {
         )
     }
 
+    /** 获取AI与OCR远程配置 */
+    suspend fun getAiRemoteConfig(baseUrl: String = AppState.url): AiRemoteConfig {
+        val fallback = AiRemoteConfig(
+            apiUrl = AppState.aiApiUrl.asHttpUrlOrNull() ?: AppState.DEFAULT_AI_API_URL,
+            apiKey = AppState.aiApiKey.trim(),
+            model = AppState.aiModel.ifBlank { AppState.DEFAULT_AI_MODEL },
+            temperature = AppState.aiTemperature.coerceIn(0.0, 1.5),
+            prompt = AppState.aiPrompt.ifBlank { AppState.DEFAULT_AI_PROMPT },
+            autoIntervalSeconds = AppState.learningAutoIntervalSeconds.coerceIn(60L, 3600L)
+        )
+        val resolvedBaseUrl = baseUrl.asHttpUrlOrNull() ?: AppState.url.asHttpUrlOrNull() ?: return fallback
+        val body = fetchString("${resolvedBaseUrl.trimEnd('/')}/AiConfig.txt")
+        if (body.isBlank()) {
+            return fallback
+        }
+
+        return AiRemoteConfig(
+            apiUrl = extractConfigValue(body, "【AI_API_URL】", fallback.apiUrl).asHttpUrlOrNull()
+                ?: fallback.apiUrl,
+            apiKey = extractConfigValue(body, "【AI_API_KEY】", fallback.apiKey).trim(),
+            model = extractConfigValue(body, "【AI_MODEL】", fallback.model)
+                .ifBlank { fallback.model },
+            temperature = extractConfigValue(
+                body,
+                "【AI_TEMPERATURE】",
+                fallback.temperature.toString()
+            ).toDoubleOrNull()?.coerceIn(0.0, 1.5) ?: fallback.temperature,
+            prompt = extractConfigValue(body, "【AI_PROMPT】", fallback.prompt)
+                .ifBlank { fallback.prompt },
+            autoIntervalSeconds = extractConfigValue(
+                body,
+                "【OCR_AUTO_INTERVAL_SECONDS】",
+                fallback.autoIntervalSeconds.toString()
+            ).toLongOrNull()?.coerceIn(60L, 3600L) ?: fallback.autoIntervalSeconds
+        )
+    }
+
     /** 启动阶段批量并行拉取远程配置，减少重复请求 */
     suspend fun getStartupRemoteConfig(): StartupRemoteConfig = coroutineScope {
         val fallbackBaseUrl = AppState.url.asHttpUrlOrNull() ?: DEFAULT_API_BASE_URL
@@ -281,6 +328,9 @@ object NetworkHelper {
         val timeApiDeferred = async {
             fetchString("$resolvedUrl/TimeApi.txt", fallbackTimeApi)
         }
+        val aiConfigDeferred = async {
+            getAiRemoteConfig(resolvedUrl)
+        }
 
         StartupRemoteConfig(
             isOpen = extractConfigValue(primaryConfig, "【ISOPEN】", "true").toBoolean(),
@@ -291,7 +341,8 @@ object NetworkHelper {
                 .asHttpUrlOrNull() ?: fallbackDownloadUrl,
             timeApi = timeApiDeferred.await().asHttpUrlOrNull() ?: fallbackTimeApi,
             countdownName = extractConfigValue(countdownConfig, "【COUNTDOWNNAME】", "高考"),
-            countdownTime = extractConfigValue(countdownConfig, "【COUNTDOWN】", "2026-6-7")
+            countdownTime = extractConfigValue(countdownConfig, "【COUNTDOWN】", "2026-6-7"),
+            aiConfig = aiConfigDeferred.await()
         )
     }
 

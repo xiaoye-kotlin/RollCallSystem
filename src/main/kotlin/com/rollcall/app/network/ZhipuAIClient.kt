@@ -3,17 +3,17 @@ package com.rollcall.app.network
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import com.rollcall.app.state.AppState
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
  * 智谱AI客户端
  * 用于调用智谱AI的API进行英语单词分析
- * 支持从本地配置文件读取API Key
+ * 配置全部来自远程下发并缓存在AppState
  */
 class ZhipuAIClient {
 
@@ -25,22 +25,17 @@ class ZhipuAIClient {
 
     private val gson = Gson()
 
-    /** 智谱AI API地址 */
-    private val apiUrl = "https://open.bigmodel.cn/api/paas/v4/chat/completions"
+    private val apiUrl: String
+        get() = AppState.aiApiUrl.trim().ifEmpty { AppState.DEFAULT_AI_API_URL }
 
-    /**
-     * 从本地配置文件读取API Key
-     * 配置文件路径: D:/Xiaoye/ai_config.txt
-     */
     private val apiKey: String
-        get() {
-            val configFile = File("D:/Xiaoye/ai_config.txt")
-            return if (configFile.exists()) {
-                configFile.readText().trim()
-            } else {
-                ""
-            }
-        }
+        get() = AppState.aiApiKey.trim()
+
+    private val model: String
+        get() = AppState.aiModel.trim().ifEmpty { AppState.DEFAULT_AI_MODEL }
+
+    private val temperature: Double
+        get() = AppState.aiTemperature.coerceIn(0.0, 1.5)
 
     /**
      * 异步发送问题到智谱AI
@@ -68,8 +63,8 @@ class ZhipuAIClient {
                 }
                 val messages = JsonArray().apply { add(message) }
                 val json = JsonObject().apply {
-                    addProperty("model", "glm-4-flash")
-                    addProperty("temperature", 0.1)
+                    addProperty("model", model)
+                    addProperty("temperature", temperature)
                     add("messages", messages)
                 }
 

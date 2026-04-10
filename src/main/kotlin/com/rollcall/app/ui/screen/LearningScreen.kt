@@ -49,17 +49,7 @@ import kotlin.coroutines.resumeWithException
 fun recognizeWord() {
     val isLearning = AppState.isLearning.collectAsState()
     val learningTriggerMode = AppState.learningTriggerMode.collectAsState()
-    val aiPrompt = remember {
-        "你是一个专业的英语词汇分析助手。工作流程：" +
-            "1.如果OCR文本英文单词少于5个或包含大量专业术语或是系统界面，返回'未识别到有效文段'；" +
-            "2.只分析英文单词（单个单词），忽略中文和英文短语；找出大一学生不认识的单个单词，" +
-            "包括完全生词和常见单词的不常见含义；排除基础词汇和专有名词；" +
-            "3.输出JSON数组格式：[{'word':'单个单词','type':'词性(n./v./adj./adv.等)'," +
-            "'meaning':'中文释义','category':'类型(new_word/familiar_new_meaning)'}]，" +
-            "完全陌生的单词标记为'new_word'，常见单词的不常见含义标记为'familiar_new_meaning'。" +
-            "按原文顺序不重复，无其他文字。只分析单个英文单词，不分析短语。" +
-            "只对通用英语文章分析，专业内容返回'未识别到有效文段'。OCR文本："
-    }
+    val aiPrompt = AppState.aiPrompt.ifBlank { AppState.DEFAULT_AI_PROMPT }
     val service = remember { ZhipuAIClient() }
     val isAutoTrigger = learningTriggerMode.value == AppState.LearningTriggerMode.AUTO
 

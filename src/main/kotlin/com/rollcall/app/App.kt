@@ -56,7 +56,6 @@ import kotlin.system.exitProcess
  */
 fun main() = application {
     // ==================== 全局状态收集 ====================
-    val isOpen = AppState.isOpen.collectAsState()
     AppState.isInternetAvailable.collectAsState()
     val buttonState = AppState.buttonState.collectAsState()
     val isLoading = AppState.isLoading.collectAsState()
@@ -87,9 +86,6 @@ fun main() = application {
     var isOpenHtml by remember { mutableStateOf(false) }
     val isTime = AppState.isTime.collectAsState()
     val isCountDownDayOpen = AppState.isCountDownDayOpen.collectAsState()
-    val isCountDownOpen = AppState.isCountDownOpen.collectAsState()
-    val week = AppState.week.collectAsState()
-    val time = AppState.time.collectAsState()
     val date = AppState.date.collectAsState()
     val luckyGuy = AppState.luckyGuy.collectAsState()
     val poolGuy = AppState.poolGuy.collectAsState()
@@ -137,6 +133,7 @@ fun main() = application {
                         AppState.setIsWallpaper(NetworkHelper.getWallpaperSwitch().toBoolean())
                         AppState.setIsDeleteWallpaper(NetworkHelper.getDeleteWallpaperSwitch().toBoolean())
                         AppState.setIsLearningRemoteEnabled(NetworkHelper.getLearningSwitch().toBoolean())
+                        applyAiRemoteConfig(NetworkHelper.getAiRemoteConfig(AppState.url))
 
                         if (!AppState.isOpen.value) exitProcess(0)
 
@@ -435,7 +432,7 @@ fun main() = application {
         val countDownType = AppState.countDownType.collectAsState()
         var isRunCountdown by remember { mutableStateOf(false) }
 
-        if (isCountDownOpen.value && countDownType.value != 0) {
+        if (countDownType.value != 0) {
             LaunchedEffect(Unit) { delay(500); isRunCountdown = true }
             CountdownTimerWindow(isRunCountdown)
         } else {
@@ -447,17 +444,16 @@ fun main() = application {
         if (isDragging.value) {
             MoreOptionsWindow(
                 isVisible = true,
-                isCountDownEnabled = isCountDownOpen.value && countDownType.value == 0,
+                isCountDownEnabled = countDownType.value == 0,
                 currentDropTarget = currentDropTarget
             )
-        } else if (!(isCountDownOpen.value && countDownType.value != 0)) {
+        } else if (countDownType.value == 0) {
             isRunCountdown = false
             currentDropTarget = DROP_TARGET_NONE
         }
 
         // 悬浮窗主窗口
         FloatingWindow(
-            isCountDownOpen = isCountDownOpen.value,
             countDownType = countDownType.value,
             isChangeFace = isChangeFace.value,
             onDropTargetChanged = { currentDropTarget = it },
@@ -543,12 +539,32 @@ fun main() = application {
 }
 
 private fun loadAutoLearningIntervalMillis(): Long {
-    val intervalSeconds = FileHelper.readFromFile("D:/Xiaoye/Learning/AutoIntervalSeconds.txt")
+    val localIntervalSeconds = FileHelper.readFromFile("D:/Xiaoye/Learning/AutoIntervalSeconds.txt")
         .trim()
         .toLongOrNull()
         ?.coerceIn(60L, 3600L)
-        ?: 300L
+    val remoteIntervalSeconds = AppState.learningAutoIntervalSeconds
+        .coerceIn(60L, 3600L)
+    val intervalSeconds =
+        if (
+            remoteIntervalSeconds == AppState.DEFAULT_OCR_AUTO_INTERVAL_SECONDS &&
+            localIntervalSeconds != null &&
+            localIntervalSeconds != AppState.DEFAULT_OCR_AUTO_INTERVAL_SECONDS
+        ) {
+            localIntervalSeconds
+        } else {
+            remoteIntervalSeconds
+        }
     return intervalSeconds * 1000
+}
+
+private fun applyAiRemoteConfig(config: NetworkHelper.AiRemoteConfig) {
+    AppState.aiApiUrl = config.apiUrl
+    AppState.aiApiKey = config.apiKey
+    AppState.aiModel = config.model
+    AppState.aiTemperature = config.temperature
+    AppState.aiPrompt = config.prompt
+    AppState.learningAutoIntervalSeconds = config.autoIntervalSeconds
 }
 
 // ==================== 辅助函数 ====================
