@@ -5,16 +5,17 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,24 +34,23 @@ import com.rollcall.app.ocr.ScreenshotHelper
 import com.rollcall.app.state.AppState
 import com.rollcall.app.ui.theme.AppTheme
 import com.rollcall.app.util.FileHelper
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import java.util.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
+import java.util.Locale
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * 英语单词识别与学习界面
- * 自动截屏→OCR识别→AI分析→展示生词
- * 使用RapidOCR本地引擎，不依赖外部程序
+ * 自动截屏 -> OCR识别 -> AI分析 -> 展示生词
  */
 @Composable
 fun recognizeWord() {
     val isLearning = AppState.isLearning.collectAsState()
-    var screenContent by remember { mutableStateOf("") }
-
-    // AI提示词：让AI分析截图中的英语生词
-    val aiPrompt by remember {
-        mutableStateOf(
-            "你是一个专业的英语词汇分析助手。工作流程：" +
+    val learningTriggerMode = AppState.learningTriggerMode.collectAsState()
+    val aiPrompt = remember {
+        "你是一个专业的英语词汇分析助手。工作流程：" +
             "1.如果OCR文本英文单词少于5个或包含大量专业术语或是系统界面，返回'未识别到有效文段'；" +
             "2.只分析英文单词（单个单词），忽略中文和英文短语；找出大一学生不认识的单个单词，" +
             "包括完全生词和常见单词的不常见含义；排除基础词汇和专有名词；" +
@@ -59,74 +59,102 @@ fun recognizeWord() {
             "完全陌生的单词标记为'new_word'，常见单词的不常见含义标记为'familiar_new_meaning'。" +
             "按原文顺序不重复，无其他文字。只分析单个英文单词，不分析短语。" +
             "只对通用英语文章分析，专业内容返回'未识别到有效文段'。OCR文本："
-        )
     }
-    var aiAnswer by remember { mutableStateOf("") }
     val service = remember { ZhipuAIClient() }
-    var hasAiAnswered by remember { mutableStateOf(false) }
-    var hasTakenScreenshot by remember { mutableStateOf(false) }
-    var isRetry by remember { mutableStateOf(false) }
+    val isAutoTrigger = learningTriggerMode.value == AppState.LearningTriggerMode.AUTO
 
-    // 监听学习模式关闭，重新启动截图流程
-    LaunchedEffect(isLearning.value) {
-        if (!isLearning.value) {
-            isRetry = true
-        }
+    var screenContent by remember { mutableStateOf("") }
+    var wordList by remember { mutableStateOf<List<WordItem>?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    var hasAnalysisResult by remember { mutableStateOf(false) }
+    var statusMessage by remember { mutableStateOf("准备开始 OCR 识别") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    fun closeLearningWindow() {
+        AppState.finishLearning()
+        screenContent = ""
+        wordList = null
+        isLoading = false
+        hasAnalysisResult = false
+        statusMessage = "准备开始 OCR 识别"
+        errorMessage = null
     }
 
-    // 主循环：截屏→OCR→AI分析
-    LaunchedEffect(Unit) {
-        while (isActive) {
-            if (!isLearning.value && isRetry) {
-                isRetry = false
-                hasAiAnswered = false
-                hasTakenScreenshot = false
-                screenContent = ""
-                aiAnswer = ""
+    LaunchedEffect(isLearning.value, learningTriggerMode.value) {
+        if (!isLearning.value) {
+            return@LaunchedEffect
+        }
 
-                // 截图并OCR识别
-                try {
-                    val ocrResult = ScreenshotHelper.takeSilentScreenshotAndRecognize().second
-                    screenContent = ocrResult
-                    hasTakenScreenshot = true
-                    println("截图完成，内容长度: ${screenContent.length}")
+        isLoading = true
+        errorMessage = null
+        screenContent = ""
+        wordList = null
+        hasAnalysisResult = false
+        statusMessage = "正在截取屏幕内容..."
 
-                    if (screenContent.isNotEmpty()) {
-                        service.askQuestionAsync(
-                            question = aiPrompt + screenContent,
-                            onSuccess = { answer ->
-                                isRetry = false
-                                aiAnswer = answer
-                                AppState.setIsLearning(true)
-                                hasAiAnswered = true
-                            },
-                            onError = {
-                                hasAiAnswered = true
-                                AppState.setIsLearning(false)
-                                isRetry = true
-                                println("AI分析失败: ${it.message}")
-                            }
-                        )
-                    }
-                } catch (e: Exception) {
-                    println("截图失败: ${e.message}")
-                    isRetry = true
+        try {
+            val (screenshotFile, ocrResult) = withContext(Dispatchers.IO) {
+                ScreenshotHelper.takeSilentScreenshotAndRecognize()
+            }
+            try {
+                screenContent = ocrResult.trim()
+            } finally {
+                if (screenshotFile.exists()) {
+                    screenshotFile.delete()
                 }
             }
-            delay(1000)
+
+            if (screenContent.isBlank()) {
+                if (isAutoTrigger) {
+                    closeLearningWindow()
+                } else {
+                    errorMessage = "未识别到可用文字，请切到包含清晰英文内容的页面后重试。"
+                    statusMessage = "OCR 未识别到文字"
+                }
+                return@LaunchedEffect
+            }
+
+            if (!looksLikeEnglishLearningPage(screenContent)) {
+                if (isAutoTrigger) {
+                    closeLearningWindow()
+                } else {
+                    errorMessage = "当前页面不像英文阅读内容，请切到英文文章、题目或单词页后再试。"
+                    statusMessage = "未检测到目标页面"
+                }
+                return@LaunchedEffect
+            }
+
+            statusMessage = "OCR 完成，正在分析生词..."
+            val aiAnswer = askAiQuestion(service, aiPrompt + screenContent)
+            val processedWords = processAiResponse(aiAnswer)
+            wordList = processedWords
+            hasAnalysisResult = true
+
+            if (isAutoTrigger) {
+                persistAutoLearningResult(screenContent, processedWords)
+                closeLearningWindow()
+                return@LaunchedEffect
+            }
+
+            statusMessage = "分析完成"
+        } catch (e: Exception) {
+            if (isAutoTrigger) {
+                println("自动OCR处理失败: ${e.message}")
+                closeLearningWindow()
+            } else {
+                errorMessage = e.message ?: "OCR 识别失败"
+                statusMessage = "处理失败"
+            }
+        } finally {
+            isLoading = false
         }
     }
 
-    // 显示结果窗口
-    if (isLearning.value && hasAiAnswered && aiAnswer.isNotEmpty()) {
+    val shouldShowWindow = isLearning.value && !isAutoTrigger
+
+    if (shouldShowWindow) {
         Window(
-            onCloseRequest = {
-                AppState.setIsLearning(false)
-                hasAiAnswered = false
-                hasTakenScreenshot = false
-                screenContent = ""
-                aiAnswer = ""
-            },
+            onCloseRequest = ::closeLearningWindow,
             title = "英语生词识别结果",
             undecorated = true,
             transparent = true,
@@ -134,173 +162,317 @@ fun recognizeWord() {
             resizable = false,
             state = rememberWindowState(
                 position = WindowPosition(Alignment.BottomEnd),
-                size = DpSize.Unspecified
+                size = DpSize(540.dp, 800.dp)
             ),
         ) {
-            com.rollcall.app.ui.theme.AppTheme {
-                WordListPanel(aiAnswer = aiAnswer)
+            AppTheme {
+                LearningPanel(
+                    isLoading = isLoading,
+                    statusMessage = statusMessage,
+                    errorMessage = errorMessage,
+                    hasAnalysisResult = hasAnalysisResult,
+                    wordList = wordList,
+                    onClose = ::closeLearningWindow
+                )
             }
         }
     }
 }
 
-/**
- * 单词列表面板
- * 显示AI分析出的生词列表
- */
 @Composable
-private fun WordListPanel(aiAnswer: String) {
-    val isLearning = AppState.isLearning.collectAsState()
-    var wordList by remember { mutableStateOf<List<WordItem>?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
+private fun LearningPanel(
+    isLoading: Boolean,
+    statusMessage: String,
+    errorMessage: String?,
+    hasAnalysisResult: Boolean,
+    wordList: List<WordItem>?,
+    onClose: () -> Unit
+) {
+    val colors = AppTheme.colors
 
-    // 解析AI回复
-    LaunchedEffect(aiAnswer) {
-        if (isLearning.value && aiAnswer.isNotEmpty()) {
-            try {
-                val processed = processAiResponse(aiAnswer)
-                if (processed == null) {
-                    AppState.setIsLearning(false)
-                    wordList = emptyList()
-                } else {
-                    wordList = processed
-                    if (processed.isEmpty()) AppState.setIsLearning(false)
-                }
-                delay(100)
-                isLoading = false
-            } catch (e: Exception) {
-                wordList = emptyList()
-                isLoading = false
-                AppState.setIsLearning(false)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(32.dp))
+            .background(colors.surface)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.primary)
+                .padding(horizontal = 24.dp, vertical = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "OCR 生词识别",
+                    style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold),
+                    color = colors.onPrimary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = statusMessage,
+                    style = TextStyle(fontSize = 14.sp),
+                    color = colors.onPrimary.copy(alpha = 0.85f)
+                )
+            }
+            IconButton(onClick = onClose) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = "关闭",
+                    tint = colors.onPrimary,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            when {
+                isLoading -> LoadingState(statusMessage = statusMessage, colors = colors)
+                errorMessage != null -> MessageState(
+                    title = "识别失败",
+                    message = errorMessage,
+                    colors = colors
+                )
+                !hasAnalysisResult -> MessageState(
+                    title = "暂无结果",
+                    message = "没有拿到有效分析结果，请重试。",
+                    colors = colors
+                )
+                else -> WordListPanel(wordList = wordList, colors = colors)
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .height(88.dp)
+                .fillMaxWidth()
+                .background(colors.primary),
+            contentAlignment = Alignment.Center
+        ) {
+            IconButton(onClick = onClose) {
+                Icon(
+                    Icons.Default.Check,
+                    contentDescription = "完成",
+                    tint = colors.onPrimary,
+                    modifier = Modifier.size(42.dp)
+                )
             }
         }
     }
+}
 
-    if (!isLoading && isLearning.value) {
-        val colors = AppTheme.colors
+@Composable
+private fun LoadingState(
+    statusMessage: String,
+    colors: com.rollcall.app.ui.theme.AppColors
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator(color = colors.primary)
+        Spacer(Modifier.height(18.dp))
+        Text(
+            text = statusMessage,
+            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium),
+            color = colors.textPrimary
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "请保持目标页面静止几秒，系统会自动完成截图、OCR 与生词分析。",
+            style = TextStyle(fontSize = 14.sp),
+            color = colors.textSecondary
+        )
+    }
+}
 
-        Column(
-            modifier = Modifier
-                .height(800.dp)
-                .width(500.dp)
-                .clip(RoundedCornerShape(32.dp))
-                .background(colors.surface),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            // 标题栏
-            Box(
-                modifier = Modifier.height(100.dp).fillMaxWidth()
-                    .background(colors.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "📚 单词学习",
-                    style = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.Bold),
-                    color = colors.onPrimary
-                )
-            }
+@Composable
+private fun MessageState(
+    title: String,
+    message: String,
+    colors: com.rollcall.app.ui.theme.AppColors
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(colors.cardBackground)
+            .border(1.dp, colors.border, RoundedCornerShape(24.dp))
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = title,
+            style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+            color = colors.textPrimary
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = message,
+            style = TextStyle(fontSize = 16.sp),
+            color = colors.textSecondary
+        )
+    }
+}
 
-            // 单词列表
-            Box(
-                modifier = Modifier.height(600.dp).fillMaxWidth(),
-                contentAlignment = Alignment.TopCenter
-            ) {
-                LazyColumn(
-                    modifier = Modifier.padding(horizontal = 10.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    when {
-                        wordList == null -> item { Text("请稍后再试。", color = colors.textSecondary) }
-                        wordList!!.isEmpty() -> item { Text("未发现生词。", color = colors.textSecondary) }
-                        else -> {
-                            // 表头
-                            item {
-                                Row(
-                                    Modifier.fillMaxWidth().padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    for (header in listOf("单词", "词性", "释义", "类型")) {
-                                        Text(
-                                            header,
-                                            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                                            overflow = TextOverflow.Ellipsis, maxLines = 1,
-                                            color = colors.textPrimary
-                                        )
-                                    }
-                                }
-                            }
-                            // 单词行
-                            items(
-                                count = wordList!!.size,
-                                key = { "${wordList!![it].word}_${wordList!![it].type}_$it" }
-                            ) { index ->
-                                val word = wordList!![index]
-                                Row(
-                                    Modifier.fillMaxWidth().padding(12.dp)
-                                        .border(1.dp, colors.border, RoundedCornerShape(4.dp))
-                                        .padding(8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(word.word, style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium),
-                                        overflow = TextOverflow.Ellipsis, maxLines = 1, color = colors.textPrimary)
-                                    Spacer(Modifier.width(10.dp))
-                                    Text(word.type, style = TextStyle(fontSize = 20.sp),
-                                        overflow = TextOverflow.Ellipsis, maxLines = 1, color = colors.textSecondary)
-                                    Spacer(Modifier.width(10.dp))
-                                    Text(word.meaning, style = TextStyle(fontSize = 20.sp),
-                                        overflow = TextOverflow.Ellipsis, maxLines = 1, color = colors.textPrimary)
-                                    Spacer(Modifier.width(10.dp))
-                                    Text(
-                                        text = when (word.category) {
-                                            "new_word" -> "生词"
-                                            "familiar_new_meaning" -> "熟词生义"
-                                            else -> word.category
-                                        },
-                                        style = TextStyle(
-                                            fontSize = 20.sp,
-                                            color = when (word.category) {
-                                                "new_word" -> colors.error
-                                                "familiar_new_meaning" -> colors.primary
-                                                else -> colors.textPrimary
-                                            }
-                                        ),
-                                        overflow = TextOverflow.Ellipsis, maxLines = 1
-                                    )
-                                }
-                                Spacer(Modifier.height(4.dp))
-                            }
-                        }
-                    }
-                }
-            }
-
-            // 底部操作栏
-            Box(
-                modifier = Modifier.height(100.dp).fillMaxWidth()
-                    .background(colors.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                IconButton(onClick = { AppState.setIsLearning(false) }) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = "我知道了",
-                        tint = colors.onPrimary,
-                        modifier = Modifier.size(50.dp)
+@Composable
+private fun WordListPanel(
+    wordList: List<WordItem>?,
+    colors: com.rollcall.app.ui.theme.AppColors
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        when {
+            wordList == null -> {
+                item {
+                    MessageState(
+                        title = "未识别到有效文段",
+                        message = "OCR 结果不是适合学习的英文段落，或 AI 返回格式异常。",
+                        colors = colors
                     )
                 }
             }
+            wordList.isEmpty() -> {
+                item {
+                    MessageState(
+                        title = "未发现生词",
+                        message = "当前截图中的英文内容较基础，暂时没有需要重点学习的单词。",
+                        colors = colors
+                    )
+                }
+            }
+            else -> {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        for (header in listOf("单词", "词性", "释义", "类型")) {
+                            Text(
+                                text = header,
+                                style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                                overflow = TextOverflow.Ellipsis,
+                                maxLines = 1,
+                                color = colors.textPrimary
+                            )
+                        }
+                    }
+                }
+                items(
+                    count = wordList.size,
+                    key = { "${wordList[it].word}_${wordList[it].type}_$it" }
+                ) { index ->
+                    val word = wordList[index]
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                            .border(1.dp, colors.border, RoundedCornerShape(4.dp))
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = word.word,
+                            style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                            color = colors.textPrimary
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = word.type,
+                            style = TextStyle(fontSize = 20.sp),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                            color = colors.textSecondary
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = word.meaning,
+                            style = TextStyle(fontSize = 20.sp),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1,
+                            color = colors.textPrimary
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        Text(
+                            text = when (word.category) {
+                                "new_word" -> "生词"
+                                "familiar_new_meaning" -> "熟词生义"
+                                else -> word.category
+                            },
+                            style = TextStyle(
+                                fontSize = 20.sp,
+                                color = when (word.category) {
+                                    "new_word" -> colors.error
+                                    "familiar_new_meaning" -> colors.primary
+                                    else -> colors.textPrimary
+                                }
+                            ),
+                            overflow = TextOverflow.Ellipsis,
+                            maxLines = 1
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                }
+            }
         }
-    } else {
-        // 占位（不可见时保持窗口结构）
-        Column(
-            modifier = Modifier.height(800.dp).width(500.dp)
-                .clip(RoundedCornerShape(32.dp)),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) { }
     }
+}
+
+private suspend fun askAiQuestion(service: ZhipuAIClient, question: String): String =
+    suspendCancellableCoroutine { continuation ->
+        service.askQuestionAsync(
+            question = question,
+            onSuccess = {
+                if (continuation.isActive) {
+                    continuation.resume(it)
+                }
+            },
+            onError = {
+                if (continuation.isActive) {
+                    continuation.resumeWithException(it)
+                }
+            }
+        )
+    }
+
+private fun looksLikeEnglishLearningPage(text: String): Boolean {
+    val englishWords = Regex("[A-Za-z]{3,}").findAll(text)
+        .map { it.value.lowercase(Locale.getDefault()) }
+        .toList()
+    if (englishWords.size < 8) return false
+
+    val uniqueWords = englishWords.toSet().size
+    val englishChars = text.count { it.isLetter() && it.code < 128 }
+    val englishRatio = englishChars.toDouble() / text.length.coerceAtLeast(1)
+    return uniqueWords >= 5 && englishRatio >= 0.25
+}
+
+private fun persistAutoLearningResult(
+    screenContent: String,
+    wordList: List<WordItem>?
+) {
+    if (wordList.isNullOrEmpty()) {
+        return
+    }
+    val gson = Gson()
+    FileHelper.writeToFile("D:/Xiaoye/Learning/LatestAutoText.txt", screenContent)
+    FileHelper.writeToFile("D:/Xiaoye/Learning/LatestAutoWords.json", gson.toJson(wordList))
 }
 
 // ==================== AI回复处理函数 ====================
@@ -311,13 +483,11 @@ private fun WordListPanel(aiAnswer: String) {
  */
 private fun processAiResponse(aiResponse: String): List<WordItem>? {
     return try {
-        // 清理AI回复中的无关标记
         var clean = aiResponse.replace(Regex("<think>[\\s\\S]*?</think>"), "").trim()
         clean = clean.replace(Regex("^```(json)?"), "").replace(Regex("```$"), "").trim()
 
         if (!clean.startsWith("{") && !clean.startsWith("[")) return null
 
-        // 对比上次结果，避免重复展示
         val lastWords = FileHelper.readFromFile("D:/Xiaoye/Learning/LastWords.json")
         if (lastWords != "404" && calculateSimilarity(clean, lastWords) >= 0.2) {
             return null
@@ -335,12 +505,14 @@ private fun processAiResponse(aiResponse: String): List<WordItem>? {
 
         wordsArray.forEach { element ->
             val obj = element.asJsonObject
-            wordList.add(WordItem(
-                word = obj.get("word")?.asString ?: "",
-                type = obj.get("type")?.asString ?: "",
-                meaning = obj.get("meaning")?.asString ?: "",
-                category = obj.get("category")?.asString ?: ""
-            ))
+            wordList.add(
+                WordItem(
+                    word = obj.get("word")?.asString ?: "",
+                    type = obj.get("type")?.asString ?: "",
+                    meaning = obj.get("meaning")?.asString ?: "",
+                    category = obj.get("category")?.asString ?: ""
+                )
+            )
         }
         wordList
     } catch (e: Exception) {
@@ -363,11 +535,13 @@ private fun calculateSimilarity(json1: String, json2: String): Double {
         val intersection = words1.intersect(words2).size
         val union = words1.union(words2).size
         intersection.toDouble() / union.toDouble()
-    } catch (e: Exception) { 0.0 }
+    } catch (e: Exception) {
+        0.0
+    }
 }
 
 /**
- * 从JSON中提取所有单词（用于相似度计算）
+ * 从JSON中提取所有单词
  */
 private fun extractWordsFromJson(json: String, gson: Gson): Set<String> {
     return try {
@@ -383,5 +557,7 @@ private fun extractWordsFromJson(json: String, gson: Gson): Set<String> {
             }
         }
         words
-    } catch (e: Exception) { emptySet() }
+    } catch (e: Exception) {
+        emptySet()
+    }
 }

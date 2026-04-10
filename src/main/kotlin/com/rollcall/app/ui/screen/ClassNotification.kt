@@ -72,12 +72,14 @@ fun ClassNotificationHost() {
     // 每秒检查通知触发条件
     LaunchedEffect(Unit) {
         while (isActive) {
-            if (isTime.value && week.value != "无" && time.value != "无") {
-                val todaySchedule = subjectList[week.value]?.schedule
+            val resolvedWeek = resolveWeekKey(week.value)
+            val resolvedTime = resolveCurrentTimeStr(time.value)
+            if (isTime.value && resolvedWeek != "无") {
+                val todaySchedule = subjectList[resolvedWeek]?.schedule
                 if (todaySchedule != null) {
-                    val notification = checkNotificationTrigger(time.value, todaySchedule)
+                    val notification = checkNotificationTrigger(resolvedTime, todaySchedule)
                     if (notification != null) {
-                        val notificationKey = "${notification.type}_${notification.title}_${time.value}"
+                        val notificationKey = "${notification.type}_${notification.title}_${resolvedTime}"
                         if (notificationKey != lastNotificationKey) {
                             lastNotificationKey = notificationKey
                             currentNotification = notification

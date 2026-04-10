@@ -62,6 +62,7 @@ fun main() = application {
     val isLoading = AppState.isLoading.collectAsState()
     val isMinimize = AppState.isMinimize.collectAsState()
     val isVoiceIdentify = AppState.isVoiceIdentify.collectAsState()
+    val isLearningRemoteEnabled = AppState.isLearningRemoteEnabled.collectAsState()
     val isLongPressed = AppState.isLongPressed.collectAsState()
     val isEasterEgg = AppState.isEasterEgg.collectAsState()
     var isRun by remember { mutableStateOf(false) }
@@ -135,6 +136,7 @@ fun main() = application {
                         AppState.setIsCountDownOpen(NetworkHelper.getCountDownSwitch().toBoolean())
                         AppState.setIsWallpaper(NetworkHelper.getWallpaperSwitch().toBoolean())
                         AppState.setIsDeleteWallpaper(NetworkHelper.getDeleteWallpaperSwitch().toBoolean())
+                        AppState.setIsLearningRemoteEnabled(NetworkHelper.getLearningSwitch().toBoolean())
 
                         if (!AppState.isOpen.value) exitProcess(0)
 
@@ -283,6 +285,31 @@ fun main() = application {
         }
     }
 
+    // ==================== OCR自动触发 ====================
+    var lastAutoLearningTriggerAt by remember { mutableStateOf(0L) }
+    LaunchedEffect(floatingWindowVisible, isEasterEgg.value, isLoading.value, isLearningRemoteEnabled.value) {
+        while (isActive) {
+            if (
+                floatingWindowVisible &&
+                !isLoading.value &&
+                !isEasterEgg.value &&
+                isLearningRemoteEnabled.value &&
+                !AppState.isLearning.value &&
+                !AppState.isDragging.value &&
+                !AppState.isLongPressed.value &&
+                buttonState.value != "关闭"
+            ) {
+                val intervalMs = loadAutoLearningIntervalMillis()
+                val now = System.currentTimeMillis()
+                if (now - lastAutoLearningTriggerAt >= intervalMs) {
+                    lastAutoLearningTriggerAt = now
+                    AppState.startLearning(AppState.LearningTriggerMode.AUTO)
+                }
+            }
+            delay(5000)
+        }
+    }
+
     // ==================== 随机颜色方案 ====================
     if (!AppState.isRandomColor) {
         initRandomColorScheme()
@@ -325,6 +352,9 @@ fun main() = application {
     if (isEasterEgg.value) {
         easterEgg()
     }
+
+    // ==================== OCR学习窗口 ====================
+    recognizeWord()
 
     // ==================== 启动加载页面 ====================
     if (mainWindowVisible && !isEasterEgg.value) {
@@ -376,13 +406,18 @@ fun main() = application {
     var isStatisticsOpen by remember { mutableStateOf(false) }
     var isGroupGeneratorOpen by remember { mutableStateOf(false) }
     var currentDropTarget by remember { mutableStateOf(DROP_TARGET_NONE) }
+    var showCountdownPicker by remember { mutableStateOf(false) }
 
+    var showScheduleWidget by remember { mutableStateOf(true) }
     var showScheduleWindow by remember { mutableStateOf(false) }
     var showQuizScreen by remember { mutableStateOf(false) }
-    var showSeatMapScreen by remember { mutableStateOf(false) }
     var showNoiseMeterScreen by remember { mutableStateOf(false) }
 
     if (floatingWindowVisible && !isEasterEgg.value) {
+        if (showScheduleWidget) {
+            ScheduleWidgetWindow()
+        }
+
         // 上下课通知系统
         ClassNotificationHost()
 
@@ -447,11 +482,18 @@ fun main() = application {
                     isQuickToolsOpen = false
                     isGroupGeneratorOpen = true
                 },
-                onOpenSchedule = { showScheduleWindow = true },
                 onOpenQuiz = { showQuizScreen = true },
-                onOpenSeatMap = { showSeatMapScreen = true },
-                onOpenNoiseMeter = { showNoiseMeterScreen = true }
+                onOpenNoiseMeter = { showNoiseMeterScreen = true },
+                onOpenLearning = {
+                    AppState.startLearning(AppState.LearningTriggerMode.MANUAL)
+                },
+                onOpenCountdown = {
+                    showCountdownPicker = true
+                }
             )
+        }
+        if (showCountdownPicker) {
+            CountdownQuickPickerWindow(onClose = { showCountdownPicker = false })
         }
         if (isStatisticsOpen) {
             StatisticsPanel(
@@ -465,9 +507,6 @@ fun main() = application {
         }
         if (showQuizScreen) {
             RandomQuizScreen(onClose = { showQuizScreen = false })
-        }
-        if (showSeatMapScreen) {
-            SeatMapScreen(onClose = { showSeatMapScreen = false })
         }
         if (showNoiseMeterScreen) {
             NoiseMeterScreen(onClose = { showNoiseMeterScreen = false })
@@ -501,6 +540,15 @@ fun main() = application {
             poolGuyJson = poolGuy.value
         )
     }
+}
+
+private fun loadAutoLearningIntervalMillis(): Long {
+    val intervalSeconds = FileHelper.readFromFile("D:/Xiaoye/Learning/AutoIntervalSeconds.txt")
+        .trim()
+        .toLongOrNull()
+        ?.coerceIn(60L, 3600L)
+        ?: 300L
+    return intervalSeconds * 1000
 }
 
 // ==================== 辅助函数 ====================

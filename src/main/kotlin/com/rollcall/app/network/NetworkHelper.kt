@@ -1,6 +1,8 @@
 package com.rollcall.app.network
 
 import com.rollcall.app.state.AppState
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -35,6 +37,16 @@ object NetworkHelper {
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
+
+    data class StartupRemoteConfig(
+        val isOpen: Boolean,
+        val url: String,
+        val isVoiceIdentifyOpen: Boolean,
+        val downloadUrl: String,
+        val timeApi: String,
+        val countdownName: String,
+        val countdownTime: String
+    )
 
     // ==================== 网络状态检测 ====================
 
@@ -244,6 +256,45 @@ object NetworkHelper {
         )
     }
 
+    /** 启动阶段批量并行拉取远程配置，减少重复请求 */
+    suspend fun getStartupRemoteConfig(): StartupRemoteConfig = coroutineScope {
+        val fallbackBaseUrl = AppState.url.asHttpUrlOrNull() ?: DEFAULT_API_BASE_URL
+        val fallbackDownloadUrl = AppState.downloadUrl.asHttpUrlOrNull() ?: DEFAULT_MODEL_DOWNLOAD_URL
+        val fallbackTimeApi = AppState.timeApi.asHttpUrlOrNull().orEmpty()
+
+        val primaryConfigDeferred = async {
+            fetchString("https://sharechain.qq.com/24611a0b19af84dfd745128cef471194")
+        }
+        val downloadConfigDeferred = async {
+            fetchString("https://sharechain.qq.com/639ed2d6e00210eb5a61af91ade279c4")
+        }
+        val countdownConfigDeferred = async {
+            fetchString("https://sharechain.qq.com/a94ef650a54e7cc5db49996ebf02865c")
+        }
+
+        val primaryConfig = primaryConfigDeferred.await()
+        val downloadConfig = downloadConfigDeferred.await()
+        val countdownConfig = countdownConfigDeferred.await()
+
+        val resolvedUrl = extractConfigValue(primaryConfig, "【URL】", fallbackBaseUrl)
+            .asHttpUrlOrNull() ?: fallbackBaseUrl
+        val timeApiDeferred = async {
+            fetchString("$resolvedUrl/TimeApi.txt", fallbackTimeApi)
+        }
+
+        StartupRemoteConfig(
+            isOpen = extractConfigValue(primaryConfig, "【ISOPEN】", "true").toBoolean(),
+            url = resolvedUrl,
+            isVoiceIdentifyOpen = extractConfigValue(primaryConfig, "【ISVOICE】", "false")
+                .toBooleanStrictOrNull() == true,
+            downloadUrl = extractConfigValue(downloadConfig, "【DOWNLOAD】", fallbackDownloadUrl)
+                .asHttpUrlOrNull() ?: fallbackDownloadUrl,
+            timeApi = timeApiDeferred.await().asHttpUrlOrNull() ?: fallbackTimeApi,
+            countdownName = extractConfigValue(countdownConfig, "【COUNTDOWNNAME】", "高考"),
+            countdownTime = extractConfigValue(countdownConfig, "【COUNTDOWN】", "2026-6-7")
+        )
+    }
+
     // ==================== 文件下载 ====================
 
     /**
@@ -353,14 +404,7 @@ object NetworkHelper {
                 val request = Request.Builder().url(url).build()
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) {
-                        val body = response.body.string()
-                        val pattern = Pattern.compile("${tag}(.*?)${tag}", Pattern.DOTALL)
-                        val matcher = pattern.matcher(body)
-                        if (matcher.find()) {
-                            matcher.group(1) ?: default
-                        } else {
-                            default
-                        }
+                        extractConfigValue(response.body.string(), tag, default)
                     } else {
                         default
                     }
@@ -371,6 +415,16 @@ object NetworkHelper {
             } catch (_: CancellationException) {
                 default
             }
+        }
+    }
+
+    private fun extractConfigValue(body: String, tag: String, default: String): String {
+        val pattern = Pattern.compile("${tag}(.*?)${tag}", Pattern.DOTALL)
+        val matcher = pattern.matcher(body)
+        return if (matcher.find()) {
+            matcher.group(1) ?: default
+        } else {
+            default
         }
     }
 

@@ -14,6 +14,11 @@ import kotlin.random.Random
  * 采用单例模式，确保全局状态唯一
  */
 object AppState {
+    enum class LearningTriggerMode {
+        MANUAL,
+        AUTO
+    }
+
     // ==================== 应用常量 ====================
     /** 应用版本号 */
     const val VERSION = 17
@@ -172,6 +177,23 @@ object AppState {
     private val _isLearning = MutableStateFlow(false)
     val isLearning: StateFlow<Boolean> get() = _isLearning
     fun setIsLearning(value: Boolean) { _isLearning.value = value }
+
+    /** OCR远程自动识别开关 */
+    private val _isLearningRemoteEnabled = MutableStateFlow(false)
+    val isLearningRemoteEnabled: StateFlow<Boolean> get() = _isLearningRemoteEnabled
+    fun setIsLearningRemoteEnabled(value: Boolean) { _isLearningRemoteEnabled.value = value }
+
+    /** OCR触发来源 */
+    private val _learningTriggerMode = MutableStateFlow(LearningTriggerMode.MANUAL)
+    val learningTriggerMode: StateFlow<LearningTriggerMode> get() = _learningTriggerMode
+    fun startLearning(triggerMode: LearningTriggerMode = LearningTriggerMode.MANUAL) {
+        _learningTriggerMode.value = triggerMode
+        _isLearning.value = true
+    }
+    fun finishLearning() {
+        _isLearning.value = false
+        _learningTriggerMode.value = LearningTriggerMode.MANUAL
+    }
 
     /** 闹钟开关 */
     private val _isAlarmClock = MutableStateFlow(false)

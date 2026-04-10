@@ -83,12 +83,14 @@ fun dragWindow() {
         val isTime = AppState.isTime.collectAsState()
         val week = AppState.week.collectAsState()
         val time = AppState.time.collectAsState()
+        val resolvedWeek = resolveWeekKey(week.value)
+        val resolvedTime = resolveCurrentTimeStr(time.value)
 
         // 判断当前是否课间，显示下节课提醒
-        if (isTime.value && week.value != "无" && time.value != "无") {
-            val todaySchedule = subjectList[week.value]
+        if (isTime.value && resolvedWeek != "无") {
+            val todaySchedule = subjectList[resolvedWeek]
             if (todaySchedule != null) {
-                val nextClass = getNextClassIfDismissalTime(time.value, todaySchedule.schedule)
+                val nextClass = getNextClassIfDismissalTime(resolvedTime, todaySchedule.schedule)
                 if (nextClass != null && nextClass != "未下课") {
                     subject = nextClass
                     AppState.setIsChangeFace(true)
