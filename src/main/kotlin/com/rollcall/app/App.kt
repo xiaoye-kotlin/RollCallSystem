@@ -363,6 +363,7 @@ fun main() = application {
     var isQuickToolsOpen by remember { mutableStateOf(false) }
     var isStatisticsOpen by remember { mutableStateOf(false) }
     var isGroupGeneratorOpen by remember { mutableStateOf(false) }
+    var currentDropTarget by remember { mutableStateOf(DROP_TARGET_NONE) }
 
     if (floatingWindowVisible && !isEasterEgg.value) {
         // 倒数日窗口
@@ -388,11 +389,15 @@ fun main() = application {
 
         // 更多选项窗口（拖拽触发）
         val isDragging = AppState.isDragging.collectAsState()
-        if (isCountDownOpen.value && countDownType.value == 0 && isDragging.value) {
-            LaunchedEffect(Unit) { delay(500); isRunCountdown = true }
-            MoreOptionsWindow(isRunCountdown)
+        if (isDragging.value) {
+            MoreOptionsWindow(
+                isVisible = true,
+                isCountDownEnabled = isCountDownOpen.value && countDownType.value == 0,
+                currentDropTarget = currentDropTarget
+            )
         } else if (!(isCountDownOpen.value && countDownType.value != 0)) {
             isRunCountdown = false
+            currentDropTarget = DROP_TARGET_NONE
         }
 
         // 悬浮窗主窗口
@@ -400,6 +405,7 @@ fun main() = application {
             isCountDownOpen = isCountDownOpen.value,
             countDownType = countDownType.value,
             isChangeFace = isChangeFace.value,
+            onDropTargetChanged = { currentDropTarget = it },
             onOpenQuickTools = {
                 isQuickToolsOpen = true
                 isStatisticsOpen = false

@@ -23,7 +23,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.awt.Toolkit
 import javax.imageio.ImageIO
+import kotlin.math.max
+
+private const val OPTIONS_WINDOW_WIDTH_DP = 340
+private const val OPTIONS_WINDOW_HEIGHT_DP = 720
+private const val OPTIONS_WINDOW_MARGIN_RIGHT_PX = 180
+private const val DRAG_BALL_SIZE_PX = 100
 
 /**
  * 倒数日窗口
@@ -136,14 +143,14 @@ fun CountdownTimerWindow(isVisible: Boolean) {
  * 拖动悬浮窗时显示在右侧
  */
 @Composable
-fun MoreOptionsWindow(isVisible: Boolean) {
+fun MoreOptionsWindow(isVisible: Boolean, isCountDownEnabled: Boolean, currentDropTarget: Int) {
+    val state = rememberWindowState(
+        size = DpSize(OPTIONS_WINDOW_WIDTH_DP.dp, OPTIONS_WINDOW_HEIGHT_DP.dp)
+    )
     Window(
         onCloseRequest = { },
         title = "更多选项",
-        state = WindowState(
-            position = WindowPosition.Aligned(Alignment.CenterEnd),
-            size = DpSize(300.dp, 600.dp)
-        ),
+        state = state,
         undecorated = true, transparent = true,
         alwaysOnTop = true, resizable = false
     ) {
@@ -157,13 +164,16 @@ fun MoreOptionsWindow(isVisible: Boolean) {
             }
         }
 
+        LaunchedEffect(window) {
+            val screenSize = Toolkit.getDefaultToolkit().screenSize
+            val marginRight = OPTIONS_WINDOW_MARGIN_RIGHT_PX
+            val y = max(40, (screenSize.height - window.height) / 2)
+            window.setLocation(screenSize.width - window.width - marginRight, y)
+        }
+
         com.rollcall.app.ui.theme.AppTheme {
             val colors = AppTheme.colors
-            AnimatedVisibility(
-                visible = isVisible,
-                enter = fadeIn(tween(1000)) + slideInVertically(tween(500)),
-                exit = fadeOut(tween(300)) + slideOutVertically(tween(300))
-            ) {
+            if (isVisible) {
                 Surface(
                     modifier = Modifier.fillMaxSize().graphicsLayer {
                         shape = RoundedCornerShape(16.dp)
@@ -176,7 +186,7 @@ fun MoreOptionsWindow(isVisible: Boolean) {
                         Modifier.padding(10.dp).fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        moreFunction()
+                        moreFunction(isCountDownEnabled, currentDropTarget)
                     }
                 }
             }
@@ -193,6 +203,7 @@ fun ApplicationScope.FloatingWindow(
     isCountDownOpen: Boolean,
     countDownType: Int,
     isChangeFace: Boolean,
+    onDropTargetChanged: (Int) -> Unit,
     onOpenQuickTools: () -> Unit
 ) {
     Window(
@@ -213,7 +224,6 @@ fun ApplicationScope.FloatingWindow(
         alwaysOnTop = true, resizable = false
     ) {
         setWindowIcon()
-        val isDragging = AppState.isDragging.collectAsState()
 
         // 保持置顶
         LaunchedEffect(Unit) {
@@ -228,12 +238,10 @@ fun ApplicationScope.FloatingWindow(
         var isDraggingBox by remember { mutableStateOf(false) }
         var lastMouseLocation by remember { mutableStateOf<Pair<Int, Int>?>(null) }
         var pressJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
-        var clickJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
         Box(Modifier.width(100.dp).height(100.dp)) {
             val dragThreshold = 5
             val clickThreshold = 200L
-            val doubleClickThreshold = 250L
 
             // 设置鼠标事件监听
             LaunchedEffect(Unit) {
@@ -247,6 +255,7 @@ fun ApplicationScope.FloatingWindow(
                             isDraggingBox = false
                             lastMouseLocation = null
                             AppState.setIsDragging(false)
+                            onDropTargetChanged(DROP_TARGET_NONE)
                             pressJob?.cancel()
                             return
                         }
@@ -255,6 +264,8 @@ fun ApplicationScope.FloatingWindow(
                         lastMouseLocation = e.locationOnScreen.let { Pair(it.x, it.y) }
                         isDraggingBox = true
                         AppState.setIsDragging(true)
+                        onDropTargetChanged(DROP_TARGET_NONE)
+                        javax.swing.SwingUtilities.invokeLater { window.toFront() }
 
                         pressJob = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
                             kotlinx.coroutines.delay(1000)
@@ -273,16 +284,7 @@ fun ApplicationScope.FloatingWindow(
 
                         val clickDuration = System.currentTimeMillis() - pressTime
                         if (clickDuration < clickThreshold && isClick) {
-                            if (e.clickCount >= 2) {
-                                clickJob?.cancel()
-                                onOpenQuickTools()
-                            } else {
-                                clickJob?.cancel()
-                                clickJob = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
-                                    kotlinx.coroutines.delay(doubleClickThreshold)
-                                    AppState.setButtonState("关闭")
-                                }
-                            }
+                            AppState.setButtonState("关闭")
                             AppState.setIsLongPressed(false)
                             pressJob?.cancel()
                         }
@@ -298,7 +300,8 @@ fun ApplicationScope.FloatingWindow(
                                 y = mouseLocation.y - window.height / 2
                             }
                             javax.swing.SwingUtilities.invokeLater { window.location = loc }
-                            checkWindowPosition(loc, isCountDownOpen, countDownType)
+                            onDropTargetChanged(DROP_TARGET_NONE)
+                            handleWindowDrop(loc, isCountDownOpen, countDownType, onOpenQuickTools)
                         }
                     }
                 })
@@ -312,9 +315,14 @@ fun ApplicationScope.FloatingWindow(
                                 if (kotlin.math.abs(dx) > dragThreshold || kotlin.math.abs(dy) > dragThreshold) {
                                     pressJob?.cancel()
                                     AppState.setIsLongPressed(false)
-                                    clickJob?.cancel()
                                     val newLoc = window.location.apply { x += dx; y += dy }
-                                    javax.swing.SwingUtilities.invokeLater { window.location = newLoc }
+                                    javax.swing.SwingUtilities.invokeLater {
+                                        window.location = newLoc
+                                        window.toFront()
+                                    }
+                                    onDropTargetChanged(
+                                        detectDropTarget(newLoc, isCountDownOpen, countDownType)
+                                    )
                                     lastMouseLocation = e.locationOnScreen.let { Pair(it.x, it.y) }
                                 }
                             }
@@ -333,23 +341,59 @@ fun ApplicationScope.FloatingWindow(
 /**
  * 根据悬浮窗位置判断倒计时类型
  */
-private fun checkWindowPosition(location: java.awt.Point, isCountDownOpen: Boolean, countDownType: Int) {
-    if (isCountDownOpen && countDownType == 0) {
-        val screenSize = java.awt.Toolkit.getDefaultToolkit().screenSize
-        val sw = screenSize.width.toDouble()
-        val sh = screenSize.height.toDouble()
-
-        val type = when {
-            location.x.toDouble() in sw * 0.7518..sw * 0.9569 &&
-                    location.y.toDouble() in sh * 0.2188..sh * 0.2954 -> 1
-            location.x.toDouble() in sw * 0.7518..sw * 0.9569 &&
-                    location.y.toDouble() in sh * 0.3063..sh * 0.4595 -> 2
-            location.x.toDouble() in sw * 0.7518..sw * 0.9569 &&
-                    location.y.toDouble() in sh * 0.4923..sh * 0.6017 -> 3
-            location.x.toDouble() in sw * 0.7518..sw * 0.9569 &&
-                    location.y.toDouble() in sh * 0.6017..sh * 0.7330 -> 4
-            else -> 0
+private fun handleWindowDrop(
+    location: java.awt.Point,
+    isCountDownOpen: Boolean,
+    countDownType: Int,
+    onOpenQuickTools: () -> Unit
+) {
+    when (detectDropTarget(location, isCountDownOpen, countDownType)) {
+        DROP_TARGET_QUICK_TOOLS -> {
+            onOpenQuickTools()
+            return
         }
-        AppState.setCountDownType(type)
+        1, 2, 3, 4 -> {
+            AppState.setCountDownType(detectDropTarget(location, isCountDownOpen, countDownType))
+            return
+        }
     }
+}
+
+private fun detectDropTarget(
+    location: java.awt.Point,
+    isCountDownOpen: Boolean,
+    countDownType: Int
+): Int {
+    val panelBounds = getOptionsPanelBounds()
+    val pointerX = location.x + DRAG_BALL_SIZE_PX / 2
+    val pointerY = location.y + DRAG_BALL_SIZE_PX / 2
+
+    val inPanelX = pointerX in (panelBounds.x + 18)..(panelBounds.x + panelBounds.width - 18)
+    if (!inPanelX) return DROP_TARGET_NONE
+
+    val localY = pointerY - panelBounds.y
+    if (localY in 125..235) {
+        return DROP_TARGET_QUICK_TOOLS
+    }
+
+    if (isCountDownOpen && countDownType == 0) {
+        return when {
+            localY in 350..435 -> 1
+            localY in 445..530 -> 2
+            localY in 540..625 -> 3
+            localY in 635..710 -> 4
+            else -> DROP_TARGET_NONE
+        }
+    }
+
+    return DROP_TARGET_NONE
+}
+
+private fun getOptionsPanelBounds(): java.awt.Rectangle {
+    val screenSize = Toolkit.getDefaultToolkit().screenSize
+    val width = OPTIONS_WINDOW_WIDTH_DP
+    val height = OPTIONS_WINDOW_HEIGHT_DP
+    val x = screenSize.width - width - OPTIONS_WINDOW_MARGIN_RIGHT_PX
+    val y = max(40, (screenSize.height - height) / 2)
+    return java.awt.Rectangle(x, y, width, height)
 }

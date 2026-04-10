@@ -176,7 +176,7 @@ private fun HelperCard(colors: com.rollcall.app.ui.theme.AppColors) {
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            text = "双击悬浮球可随时打开这个快捷工具面板。",
+            text = "拖拽悬浮球到右侧面板顶部的“快捷工具”区域后松手即可打开。",
             fontSize = 13.sp,
             color = colors.textHint,
             lineHeight = 20.sp
