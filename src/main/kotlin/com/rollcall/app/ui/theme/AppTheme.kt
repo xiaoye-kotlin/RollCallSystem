@@ -321,7 +321,8 @@ private fun detectWindowsDarkMode(): Boolean {
         val output = process.inputStream.bufferedReader().readText()
         process.waitFor()
         // 输出示例：... AppsUseLightTheme    REG_DWORD    0x00000000
-        output.contains("0x0")
+        // 值为 0 表示暗色，非零表示亮色；用正则精确匹配 "0x" 后全为 0 的情况
+        Regex("""0x0+\s*$""", RegexOption.MULTILINE).containsMatchIn(output)
     } catch (_: Exception) {
         false
     }
