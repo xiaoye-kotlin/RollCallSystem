@@ -234,6 +234,13 @@ fun title() {
         AppState.countdownTime = remoteConfig.countdownTime
         applyAiRemoteConfig(remoteConfig.aiConfig)
 
+        if (hasLocalCoreData) {
+            tips = "使用缓存快速启动..."
+            applyCoreData(localCache.studentJson, localCache.subjectJson)
+            applyOptionalLocalData(localCache)
+            AppState.setIsLoading(false)
+        }
+
         tips = "并行加载课程和名单..."
         val studentDeferred = async(Dispatchers.IO) {
             retryFast(
@@ -255,6 +262,30 @@ fun title() {
                     checkAndCopyModel(AppState.downloadUrl, targetDir, testDir)
                 }
             }
+        }
+
+        if (hasLocalCoreData) {
+            launch {
+                val loadedStudentJson = studentDeferred.await()
+                val loadedSubjectJson = subjectDeferred.await()
+                val finalStudentJson =
+                    if (isValidStudentJson(loadedStudentJson)) loadedStudentJson else localCache.studentJson
+                val finalSubjectJson =
+                    if (isValidSubjectJson(loadedSubjectJson)) loadedSubjectJson else localCache.subjectJson
+
+                if (isValidStudentJson(finalStudentJson) && isValidSubjectJson(finalSubjectJson)) {
+                    applyCoreData(finalStudentJson, finalSubjectJson)
+                    withContext(Dispatchers.IO) {
+                        persistCoreData(
+                            studentJson = finalStudentJson,
+                            subjectJson = finalSubjectJson,
+                            countdownName = AppState.countdownName,
+                            countdownTime = AppState.countdownTime
+                        )
+                    }
+                }
+            }
+            return@LaunchedEffect
         }
 
         val loadedStudentJson = studentDeferred.await()

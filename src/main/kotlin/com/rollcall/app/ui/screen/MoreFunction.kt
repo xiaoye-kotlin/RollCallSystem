@@ -179,7 +179,7 @@ private fun ToolDropZone(
                     color = colors.textPrimary
                 )
                 Text(
-                    text = "点名统计 / 随机分组",
+                    text = "统计 / 分组 / 抽题 / OCR / 噪音 / 倒计时",
                     fontSize = 13.sp,
                     color = colors.textHint
                 )

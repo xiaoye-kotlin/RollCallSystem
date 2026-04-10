@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -49,9 +50,17 @@ fun GroupGeneratorPanel(
 ) {
     // 加载学生列表
     val allStudents = remember { loadStudentNames() }
-    var groupCount by remember { mutableStateOf(4) }
+    val groupOptions = remember(allStudents) { buildGroupOptions(allStudents.size) }
+    var groupCount by remember(groupOptions) {
+        mutableStateOf(groupOptions.getOrElse(2) { groupOptions.lastOrNull() ?: 2 })
+    }
     var groups by remember { mutableStateOf(generateGroups(allStudents, groupCount)) }
     var refreshCounter by remember { mutableStateOf(0) }
+    val groupSizeSummary = remember(groups) { summarizeGroupSizes(groups) }
+
+    LaunchedEffect(allStudents, groupCount, refreshCounter) {
+        groups = generateGroups(allStudents, groupCount)
+    }
 
     // 每组使用不同的强调色
     val groupColors = listOf(
@@ -105,7 +114,7 @@ fun GroupGeneratorPanel(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "共 ${allStudents.size} 位同学 · $groupCount 个小组",
+                            "共 ${allStudents.size} 位同学 · $groupCount 个小组 · $groupSizeSummary",
                             fontSize = 14.sp,
                             color = colors.textHint
                         )
@@ -120,7 +129,6 @@ fun GroupGeneratorPanel(
                         // 重新分组
                         IconButton(onClick = {
                             refreshCounter++
-                            groups = generateGroups(allStudents, groupCount)
                         }) {
                             Icon(
                                 Icons.Default.Refresh,
@@ -148,7 +156,7 @@ fun GroupGeneratorPanel(
                         .padding(horizontal = 20.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    for (n in listOf(2, 3, 4, 5, 6, 8)) {
+                    for (n in groupOptions) {
                         val isSelected = n == groupCount
                         Box(
                             modifier = Modifier
@@ -163,6 +171,12 @@ fun GroupGeneratorPanel(
                                     else colors.cardBorder,
                                     RoundedCornerShape(12.dp)
                                 )
+                                .clickable(enabled = allStudents.isNotEmpty()) {
+                                    if (groupCount != n) {
+                                        groupCount = n
+                                        refreshCounter++
+                                    }
+                                }
                                 .padding(horizontal = 14.dp, vertical = 8.dp),
                             contentAlignment = Alignment.Center
                         ) {
@@ -309,6 +323,30 @@ private fun generateGroups(students: List<String>, groupCount: Int): List<List<S
         groups[index % groupCount].add(name)
     }
     return groups
+}
+
+private fun buildGroupOptions(studentCount: Int): List<Int> {
+    if (studentCount <= 1) return listOf(1)
+
+    val preferred = listOf(2, 3, 4, 5, 6, 8)
+    val limited = preferred.filter { it <= studentCount }
+    if (limited.isNotEmpty()) {
+        return limited
+    }
+    return (2..studentCount.coerceAtMost(8)).toList()
+}
+
+private fun summarizeGroupSizes(groups: List<List<String>>): String {
+    if (groups.isEmpty()) return "暂无分组"
+
+    val sizes = groups.map { it.size }
+    val min = sizes.minOrNull() ?: 0
+    val max = sizes.maxOrNull() ?: 0
+    return if (min == max) {
+        "每组${min}人"
+    } else {
+        "每组${min}-${max}人"
+    }
 }
 
 /**

@@ -1,9 +1,12 @@
 package com.rollcall.app.ui.screen
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
@@ -16,8 +19,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -161,6 +167,7 @@ fun recognizeWord() {
                     statusMessage = statusMessage,
                     errorMessage = errorMessage,
                     hasAnalysisResult = hasAnalysisResult,
+                    screenContent = screenContent,
                     wordList = wordList,
                     onClose = ::closeLearningWindow
                 )
@@ -175,26 +182,43 @@ private fun LearningPanel(
     statusMessage: String,
     errorMessage: String?,
     hasAnalysisResult: Boolean,
+    screenContent: String,
     wordList: List<WordItem>?,
     onClose: () -> Unit
 ) {
     val colors = AppTheme.colors
+    val totalWords = wordList?.size ?: 0
+    val newWordCount = wordList?.count { it.category == "new_word" } ?: 0
+    val familiarMeaningCount = wordList?.count { it.category == "familiar_new_meaning" } ?: 0
+    val excerptLength = screenContent.trim().length
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(32.dp))
-            .background(colors.surface)
+            .background(
+                Brush.verticalGradient(
+                    listOf(
+                        colors.surface,
+                        colors.surfaceVariant,
+                        colors.background
+                    )
+                )
+            )
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(colors.primary)
-                .padding(horizontal = 24.dp, vertical = 20.dp),
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(colors.primary, colors.primaryVariant, colors.accent.copy(alpha = 0.92f))
+                    )
+                )
+                .padding(horizontal = 24.dp, vertical = 22.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "OCR 生词识别",
                     style = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.Bold),
@@ -206,6 +230,27 @@ private fun LearningPanel(
                     style = TextStyle(fontSize = 14.sp),
                     color = colors.onPrimary.copy(alpha = 0.85f)
                 )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LearningSummaryChip(
+                        label = "识别片段",
+                        value = if (excerptLength > 0) "${excerptLength}字" else "--",
+                        accent = Color.White.copy(alpha = 0.22f),
+                        textColor = colors.onPrimary
+                    )
+                    LearningSummaryChip(
+                        label = "待学条目",
+                        value = totalWords.toString(),
+                        accent = Color(0xFFDCFCE7).copy(alpha = 0.35f),
+                        textColor = colors.onPrimary
+                    )
+                    LearningSummaryChip(
+                        label = "生词/熟义",
+                        value = "$newWordCount/$familiarMeaningCount",
+                        accent = Color(0xFFFFF1C2).copy(alpha = 0.38f),
+                        textColor = colors.onPrimary
+                    )
+                }
             }
             IconButton(onClick = onClose) {
                 Icon(
@@ -221,7 +266,7 @@ private fun LearningPanel(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             contentAlignment = Alignment.Center
         ) {
             when {
@@ -236,15 +281,23 @@ private fun LearningPanel(
                     message = "没有拿到有效分析结果，请重试。",
                     colors = colors
                 )
-                else -> WordListPanel(wordList = wordList, colors = colors)
+                else -> WordListPanel(
+                    wordList = wordList,
+                    screenContent = screenContent,
+                    colors = colors
+                )
             }
         }
 
         Box(
             modifier = Modifier
-                .height(88.dp)
+                .height(92.dp)
                 .fillMaxWidth()
-                .background(colors.primary),
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(colors.primaryVariant, colors.primary, colors.accent.copy(alpha = 0.92f))
+                    )
+                ),
             contentAlignment = Alignment.Center
         ) {
             IconButton(onClick = onClose) {
@@ -265,6 +318,12 @@ private fun LoadingState(
     colors: com.rollcall.app.ui.theme.AppColors
 ) {
     Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(colors.cardBackground.copy(alpha = 0.96f))
+            .border(1.dp, colors.cardBorder, RoundedCornerShape(28.dp))
+            .padding(horizontal = 28.dp, vertical = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -294,9 +353,9 @@ private fun MessageState(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(24.dp))
-            .background(colors.cardBackground)
-            .border(1.dp, colors.border, RoundedCornerShape(24.dp))
-            .padding(24.dp),
+            .background(colors.cardBackground.copy(alpha = 0.98f))
+            .border(1.dp, colors.cardBorder, RoundedCornerShape(24.dp))
+            .padding(horizontal = 24.dp, vertical = 28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -317,11 +376,17 @@ private fun MessageState(
 @Composable
 private fun WordListPanel(
     wordList: List<WordItem>?,
+    screenContent: String,
     colors: com.rollcall.app.ui.theme.AppColors
 ) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(28.dp))
+            .background(colors.cardBackground.copy(alpha = 0.98f))
+            .border(1.dp, colors.cardBorder, RoundedCornerShape(28.dp))
+            .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         when {
             wordList == null -> {
@@ -344,84 +409,200 @@ private fun WordListPanel(
             }
             else -> {
                 item {
-                    Row(
+                    val newWordCount = wordList.count { it.category == "new_word" }
+                    val familiarMeaningCount = wordList.count { it.category == "familiar_new_meaning" }
+                    val excerptPreview = screenContent
+                        .replace(Regex("\\s+"), " ")
+                        .trim()
+                        .take(90)
+                        .ifBlank { "当前识别片段为空" }
+
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(
+                                        colors.primary.copy(alpha = 0.12f),
+                                        colors.accent.copy(alpha = 0.08f),
+                                        colors.success.copy(alpha = 0.12f)
+                                    )
+                                )
+                            )
+                            .border(1.dp, colors.border.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
+                            .padding(16.dp)
                     ) {
-                        for (header in listOf("单词", "词性", "释义", "类型")) {
-                            Text(
-                                text = header,
-                                style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
-                                overflow = TextOverflow.Ellipsis,
-                                maxLines = 1,
-                                color = colors.textPrimary
+                        Text(
+                            text = "学习摘要",
+                            style = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+                            color = colors.textPrimary
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = excerptPreview,
+                            style = TextStyle(fontSize = 14.sp),
+                            color = colors.textSecondary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LearningStatCard(
+                                title = "总条目",
+                                value = wordList.size.toString(),
+                                accent = colors.primary,
+                                modifier = Modifier.weight(1f)
+                            )
+                            LearningStatCard(
+                                title = "生词",
+                                value = newWordCount.toString(),
+                                accent = colors.error,
+                                modifier = Modifier.weight(1f)
+                            )
+                            LearningStatCard(
+                                title = "熟词生义",
+                                value = familiarMeaningCount.toString(),
+                                accent = colors.success,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                     }
                 }
-                items(
-                    count = wordList.size,
-                    key = { "${wordList[it].word}_${wordList[it].type}_$it" }
-                ) { index ->
-                    val word = wordList[index]
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp)
-                            .border(1.dp, colors.border, RoundedCornerShape(4.dp))
-                            .padding(8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = word.word,
-                            style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Medium),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                            color = colors.textPrimary
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = word.type,
-                            style = TextStyle(fontSize = 20.sp),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                            color = colors.textSecondary
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = word.meaning,
-                            style = TextStyle(fontSize = 20.sp),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1,
-                            color = colors.textPrimary
-                        )
-                        Spacer(Modifier.width(10.dp))
-                        Text(
-                            text = when (word.category) {
-                                "new_word" -> "生词"
-                                "familiar_new_meaning" -> "熟词生义"
-                                else -> word.category
-                            },
-                            style = TextStyle(
-                                fontSize = 20.sp,
-                                color = when (word.category) {
-                                    "new_word" -> colors.error
-                                    "familiar_new_meaning" -> colors.primary
-                                    else -> colors.textPrimary
-                                }
-                            ),
-                            overflow = TextOverflow.Ellipsis,
-                            maxLines = 1
-                        )
-                    }
-                    Spacer(Modifier.height(4.dp))
+                itemsIndexed(
+                    items = wordList,
+                    key = { index, word -> "${word.word}_${word.type}_${word.category}_$index" }
+                ) { index, word ->
+                    WordCard(index = index, word = word, colors = colors)
                 }
             }
         }
     }
+}
+
+@Composable
+private fun LearningSummaryChip(
+    label: String,
+    value: String,
+    accent: Color,
+    textColor: Color
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(accent)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = label, fontSize = 10.sp, color = textColor.copy(alpha = 0.88f))
+        Spacer(Modifier.height(2.dp))
+        Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textColor)
+    }
+}
+
+@Composable
+private fun LearningStatCard(
+    title: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.72f))
+            .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(18.dp))
+            .padding(vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(text = title, fontSize = 11.sp, color = accent)
+        Spacer(Modifier.height(3.dp))
+        Text(text = value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Color(0xFF24324A))
+    }
+}
+
+@Composable
+private fun WordCard(
+    index: Int,
+    word: WordItem,
+    colors: com.rollcall.app.ui.theme.AppColors
+) {
+    val categoryColor = when (word.category) {
+        "new_word" -> colors.error
+        "familiar_new_meaning" -> colors.primary
+        else -> colors.textSecondary
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.White.copy(alpha = 0.96f))
+            .border(1.dp, colors.border.copy(alpha = 0.85f), RoundedCornerShape(22.dp))
+            .animateContentSize()
+            .padding(horizontal = 16.dp, vertical = 14.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(categoryColor.copy(alpha = 0.12f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = (index + 1).toString(),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = categoryColor
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = word.word.ifBlank { "未命名条目" },
+                    style = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.Bold),
+                    color = colors.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = if (word.type.isBlank()) "未标注词性" else word.type,
+                    style = TextStyle(fontSize = 13.sp),
+                    color = colors.textSecondary
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(categoryColor.copy(alpha = 0.12f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = formatWordCategory(word.category),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = categoryColor,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            text = word.meaning.ifBlank { "暂无释义" },
+            style = TextStyle(fontSize = 16.sp, fontWeight = FontWeight.Medium),
+            color = colors.textPrimary
+        )
+    }
+}
+
+private fun formatWordCategory(category: String): String = when (category) {
+    "new_word" -> "生词"
+    "familiar_new_meaning" -> "熟词生义"
+    else -> category.ifBlank { "待确认" }
 }
 
 private suspend fun askAiQuestion(service: ZhipuAIClient, question: String): String =

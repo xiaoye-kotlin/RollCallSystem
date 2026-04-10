@@ -58,6 +58,7 @@ fun QuickToolsPanel(
     onOpenCountdown: () -> Unit = {}
 ) {
     var showContent by remember { mutableStateOf(false) }
+    val countDownType by AppState.countDownType.collectAsState()
 
     LaunchedEffect(Unit) {
         delay(60)
@@ -80,16 +81,22 @@ fun QuickToolsPanel(
             val colors = AppTheme.colors
             val toolRows = listOf(
                 listOf(
-                    ToolItem("📊", "点名统计", colors.primary, onOpenStatistics),
-                    ToolItem("🎲", "随机分组", colors.accent, onOpenGroupGenerator)
+                    ToolItem("📊", "点名统计", "查看记录", colors.primary, onOpenStatistics),
+                    ToolItem("🎲", "随机分组", "快速成组", colors.accent, onOpenGroupGenerator)
                 ),
                 listOf(
-                    ToolItem("🎯", "随机抽题", colors.success, onOpenQuiz),
-                    ToolItem("📝", "OCR识词", Color(0xFF8E44AD), onOpenLearning)
+                    ToolItem("🎯", "随机抽题", "课堂互动", colors.success, onOpenQuiz),
+                    ToolItem("📝", "OCR识词", "截图识别", Color(0xFF8E44AD), onOpenLearning)
                 ),
                 listOf(
-                    ToolItem("🔊", "噪音检测", Color(0xFFE45858), onOpenNoiseMeter),
-                    ToolItem("⏱", "倒计时", colors.warning, onOpenCountdown)
+                    ToolItem("🔊", "噪音检测", "麦克风采样", Color(0xFFE45858), onOpenNoiseMeter),
+                    ToolItem(
+                        "⏱",
+                        "倒计时",
+                        if (countDownType == 0) "快速开始" else "进行中",
+                        colors.warning,
+                        onOpenCountdown
+                    )
                 )
             )
 
@@ -174,6 +181,7 @@ fun QuickToolsPanel(
                                 ToolButton(
                                     icon = item.icon,
                                     label = item.label,
+                                    subtitle = item.subtitle,
                                     accentColor = item.accentColor,
                                     colors = colors,
                                     modifier = Modifier.weight(1f)
@@ -211,6 +219,7 @@ fun QuickToolsPanel(
 @Composable
 fun CountdownQuickPickerWindow(onClose: () -> Unit) {
     var showContent by remember { mutableStateOf(false) }
+    val countDownType by AppState.countDownType.collectAsState()
 
     LaunchedEffect(Unit) {
         delay(40)
@@ -226,7 +235,7 @@ fun CountdownQuickPickerWindow(onClose: () -> Unit) {
         resizable = false,
         state = rememberWindowState(
             position = WindowPosition(Alignment.Center),
-            size = DpSize(328.dp, 296.dp)
+            size = DpSize(336.dp, 358.dp)
         )
     ) {
         AppTheme {
@@ -267,7 +276,7 @@ fun CountdownQuickPickerWindow(onClose: () -> Unit) {
                         Column {
                             Text("倒计时", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                             Text(
-                                "点击时长后立即开始",
+                                if (countDownType == 0) "点击时长后立即开始" else "当前已有倒计时，可切换或停止",
                                 fontSize = 12.sp,
                                 color = colors.textHint
                             )
@@ -279,6 +288,44 @@ fun CountdownQuickPickerWindow(onClose: () -> Unit) {
                 }
 
                 Spacer(Modifier.height(14.dp))
+
+                if (countDownType != 0) {
+                    AnimatedVisibility(
+                        visible = showContent,
+                        enter = fadeIn(tween(220, delayMillis = 50)) + scaleIn(
+                            animationSpec = tween(230, delayMillis = 50),
+                            initialScale = 0.96f
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.White.copy(alpha = 0.8f))
+                                .border(1.dp, colors.warning.copy(alpha = 0.28f), RoundedCornerShape(16.dp))
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("进行中", fontSize = 12.sp, color = colors.warning, fontWeight = FontWeight.SemiBold)
+                                Text("当前 ${countDownTypeToLabel(countDownType)}", fontSize = 14.sp, color = colors.textPrimary)
+                            }
+                            CountdownOptionCard(
+                                label = "停止",
+                                accent = colors.error,
+                                enabled = true,
+                                onClick = {
+                                    AppState.setCountDownType(0)
+                                    onClose()
+                                },
+                                modifier = Modifier.width(88.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+                }
 
                 options.chunked(2).forEachIndexed { rowIndex, row ->
                     AnimatedVisibility(
@@ -401,6 +448,7 @@ private fun TodayInfoCard(colors: com.rollcall.app.ui.theme.AppColors) {
 private fun ToolButton(
     icon: String,
     label: String,
+    subtitle: String,
     accentColor: Color,
     colors: com.rollcall.app.ui.theme.AppColors,
     modifier: Modifier = Modifier,
@@ -430,12 +478,30 @@ private fun ToolButton(
         }
         Spacer(Modifier.height(8.dp))
         Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(3.dp))
+        Text(
+            subtitle,
+            fontSize = 11.sp,
+            color = accentColor.copy(alpha = 0.88f),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
 private data class ToolItem(
     val icon: String,
     val label: String,
+    val subtitle: String,
     val accentColor: Color,
     val onClick: () -> Unit
 )
+
+private fun countDownTypeToLabel(type: Int): String {
+    return when (type) {
+        1 -> "1分钟"
+        2 -> "3分钟"
+        3 -> "5分钟"
+        4 -> "10分钟"
+        else -> "未开始"
+    }
+}

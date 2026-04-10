@@ -3,6 +3,7 @@ package com.rollcall.app.ui.screen
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -13,6 +14,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,7 +49,13 @@ import com.rollcall.app.util.FileHelper
 fun StatisticsPanel(
     onClose: () -> Unit
 ) {
-    val statsData = remember { loadStatistics() }
+    var rawStatsData by remember { mutableStateOf(loadStatistics()) }
+    var sortMode by remember { mutableStateOf(StatSortMode.HOT) }
+    val statsData = remember(rawStatsData, sortMode) {
+        sortStatistics(rawStatsData, sortMode)
+    }
+    val hottestStudent = remember(rawStatsData) { rawStatsData.maxByOrNull { it.second } }
+    val coldestStudent = remember(rawStatsData) { rawStatsData.minByOrNull { it.second } }
     val maxCount = statsData.maxOfOrNull { it.second } ?: 1
     val totalCalls = statsData.sumOf { it.second }
     val avgCalls = if (statsData.isNotEmpty()) totalCalls.toFloat() / statsData.size else 0f
@@ -62,7 +70,7 @@ fun StatisticsPanel(
         resizable = false,
         state = rememberWindowState(
             position = WindowPosition(Alignment.Center),
-            size = DpSize(580.dp, 780.dp)
+            size = DpSize(620.dp, 820.dp)
         ),
     ) {
         com.rollcall.app.ui.theme.AppTheme {
@@ -80,7 +88,7 @@ fun StatisticsPanel(
             ) {
                 // 标题栏
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(20.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 18.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -98,13 +106,40 @@ fun StatisticsPanel(
                             color = themeColors.textHint
                         )
                     }
-                    IconButton(onClick = onClose) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "关闭",
-                            tint = themeColors.textSecondary,
-                            modifier = Modifier.size(24.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { rawStatsData = loadStatistics() }) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "刷新",
+                                tint = themeColors.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        IconButton(onClick = onClose) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "关闭",
+                                tint = themeColors.textSecondary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    StatSortChip("高到低", sortMode == StatSortMode.HOT, themeColors) {
+                        sortMode = StatSortMode.HOT
+                    }
+                    StatSortChip("低到高", sortMode == StatSortMode.COLD, themeColors) {
+                        sortMode = StatSortMode.COLD
+                    }
+                    StatSortChip("按姓名", sortMode == StatSortMode.NAME, themeColors) {
+                        sortMode = StatSortMode.NAME
                     }
                 }
 
@@ -112,14 +147,14 @@ fun StatisticsPanel(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     StatSummaryCard(
                         icon = "🏆",
                         label = "最多",
-                        value = if (statsData.isNotEmpty()) "${statsData[0].second}次" else "-",
-                        subLabel = if (statsData.isNotEmpty()) statsData[0].first else "",
+                        value = hottestStudent?.let { "${it.second}次" } ?: "-",
+                        subLabel = hottestStudent?.first.orEmpty(),
                         accentColor = Color(0xFFFFD700),
                         colors = themeColors,
                         modifier = Modifier.weight(1f)
@@ -136,8 +171,8 @@ fun StatisticsPanel(
                     StatSummaryCard(
                         icon = "📉",
                         label = "最少",
-                        value = if (statsData.isNotEmpty()) "${statsData.last().second}次" else "-",
-                        subLabel = if (statsData.isNotEmpty()) statsData.last().first else "",
+                        value = coldestStudent?.let { "${it.second}次" } ?: "-",
+                        subLabel = coldestStudent?.first.orEmpty(),
                         accentColor = themeColors.accent,
                         colors = themeColors,
                         modifier = Modifier.weight(1f)
@@ -202,6 +237,36 @@ fun StatisticsPanel(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StatSortChip(
+    label: String,
+    selected: Boolean,
+    colors: com.rollcall.app.ui.theme.AppColors,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                if (selected) colors.primary.copy(alpha = 0.12f) else colors.cardBackground
+            )
+            .border(
+                1.dp,
+                if (selected) colors.primary.copy(alpha = 0.35f) else colors.cardBorder,
+                RoundedCornerShape(10.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 7.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) colors.primary else colors.textSecondary
+        )
     }
 }
 
@@ -454,5 +519,22 @@ private fun loadStatistics(): List<Pair<String, Int>> {
             .sortedByDescending { it.second }
     } catch (_: Exception) {
         emptyList()
+    }
+}
+
+private enum class StatSortMode {
+    HOT,
+    COLD,
+    NAME
+}
+
+private fun sortStatistics(
+    data: List<Pair<String, Int>>,
+    sortMode: StatSortMode
+): List<Pair<String, Int>> {
+    return when (sortMode) {
+        StatSortMode.HOT -> data.sortedWith(compareByDescending<Pair<String, Int>> { it.second }.thenBy { it.first })
+        StatSortMode.COLD -> data.sortedWith(compareBy<Pair<String, Int>> { it.second }.thenBy { it.first })
+        StatSortMode.NAME -> data.sortedBy { it.first }
     }
 }

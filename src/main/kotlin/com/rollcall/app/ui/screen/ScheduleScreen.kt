@@ -63,7 +63,7 @@ fun ScheduleWindow(onClose: () -> Unit) {
         resizable = false,
         state = rememberWindowState(
             position = WindowPosition(Alignment.Center),
-            size = DpSize(680.dp, 760.dp)
+            size = DpSize(760.dp, 840.dp)
         )
     ) {
         setWindowIcon()
@@ -90,60 +90,142 @@ fun ScheduleWindow(onClose: () -> Unit) {
             val currentInfo = remember(tick, currentTimeStr, todaySchedule) {
                 computeCurrentClassInfo(currentTimeStr, todaySchedule)
             }
+            val currentSubject = todaySchedule?.getOrNull(currentInfo.currentIndex)
+            val nextSubject = todaySchedule?.getOrNull(currentInfo.nextIndex)
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(24.dp))
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(colors.gradient1, colors.gradient2)
+                            colors = listOf(
+                                colors.gradient1,
+                                colors.gradient2,
+                                colors.surfaceVariant
+                            )
                         )
                     )
             ) {
-                // 顶部标题栏
-                ScheduleHeader(
-                    colors = colors,
-                    todayKey = todayKey,
-                    currentInfo = currentInfo,
-                    onClose = onClose
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .background(Color.White.copy(alpha = 0.16f))
                 )
 
-                // 当日课程列表
-                if (todaySchedule != null && todaySchedule.isNotEmpty()) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(bottom = 20.dp)
-                    ) {
-                        itemsIndexed(
-                            items = todaySchedule,
-                            key = { index, _ -> "class_$index" }
-                        ) { index, subject ->
-                            ScheduleClassCard(
-                                subject = subject,
-                                isCurrent = currentInfo.currentIndex == index,
-                                isNext = currentInfo.nextIndex == index,
-                                colors = colors
-                            )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 18.dp, vertical = 18.dp)
+                ) {
+                    ScheduleHeader(
+                        colors = colors,
+                        todayKey = todayKey,
+                        currentInfo = currentInfo,
+                        onClose = onClose
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    ScheduleFocusBoard(
+                        todayKey = todayKey,
+                        currentInfo = currentInfo,
+                        currentSubject = currentSubject,
+                        nextSubject = nextSubject,
+                        currentTimeStr = currentTimeStr,
+                        colors = colors
+                    )
+
+                    Spacer(Modifier.height(12.dp))
+
+                    if (todaySchedule != null && todaySchedule.isNotEmpty()) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding = PaddingValues(bottom = 18.dp)
+                        ) {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(colors.cardBackground.copy(alpha = 0.9f))
+                                        .border(1.dp, colors.cardBorder, RoundedCornerShape(20.dp))
+                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "今日时间轴",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.textPrimary
+                                        )
+                                        Spacer(Modifier.height(3.dp))
+                                        Text(
+                                            text = "${todaySchedule.size} 节课 · ${todaySchedule.first().startTime} - ${todaySchedule.last().endTime}",
+                                            fontSize = 13.sp,
+                                            color = colors.textSecondary
+                                        )
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(colors.primary.copy(alpha = 0.12f))
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    ) {
+                                        Text(
+                                            text = when {
+                                                currentInfo.currentIndex >= 0 -> "正在进行"
+                                                currentInfo.nextIndex >= 0 -> "等待上课"
+                                                else -> "今日结束"
+                                            },
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = colors.primary
+                                        )
+                                    }
+                                }
+                            }
+
+                            itemsIndexed(
+                                items = todaySchedule,
+                                key = { index, _ -> "class_$index" }
+                            ) { index, subject ->
+                                ScheduleClassCard(
+                                    subject = subject,
+                                    isCurrent = currentInfo.currentIndex == index,
+                                    isNext = currentInfo.nextIndex == index,
+                                    colors = colors
+                                )
+                            }
                         }
-                    }
-                } else {
-                    // 无课程提示
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("📭", fontSize = 60.sp)
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                if (todayKey == "无") "暂未获取到星期信息" else "今天没有课程安排",
-                                fontSize = 20.sp,
-                                color = colors.textHint
-                            )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(28.dp))
+                                .background(colors.cardBackground.copy(alpha = 0.92f))
+                                .border(1.dp, colors.cardBorder, RoundedCornerShape(28.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("📭", fontSize = 60.sp)
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    if (todayKey == "无") "暂未获取到星期信息" else "今天没有课程安排",
+                                    fontSize = 22.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = colors.textPrimary
+                                )
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    text = if (todayKey == "无") "请先等待网络时间与星期同步。" else "可以去处理别的功能，不用盯着课表。",
+                                    fontSize = 14.sp,
+                                    color = colors.textSecondary
+                                )
+                            }
                         }
                     }
                 }
@@ -451,8 +533,14 @@ private fun ScheduleHeader(
     currentInfo: ClassInfo,
     onClose: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(20.dp)) {
-        // 标题行
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(colors.cardBackground.copy(alpha = 0.9f))
+            .border(1.dp, colors.cardBorder, RoundedCornerShape(28.dp))
+            .padding(20.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -462,7 +550,7 @@ private fun ScheduleHeader(
                 Text("📅", fontSize = 28.sp)
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    "今日课表",
+                    "今日课程",
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     color = colors.textPrimary
@@ -484,42 +572,45 @@ private fun ScheduleHeader(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = formatTodayHeadline(todayKey, currentInfo),
+            fontSize = 14.sp,
+            color = colors.textSecondary
+        )
 
-        // 当前/下节课信息卡片
+        Spacer(Modifier.height(14.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 当前课程卡片
             InfoChip(
-                icon = "📖",
+                icon = "当前",
                 label = "当前",
                 value = currentInfo.currentClassName,
                 accentColor = colors.success,
-                bgColor = colors.cardBackground,
+                bgColor = Color(0xFFE9F9F2),
                 borderColor = colors.success.copy(alpha = 0.3f),
                 textColor = colors.textPrimary,
                 modifier = Modifier.weight(1f)
             )
-            // 下节课卡片
             InfoChip(
-                icon = "➡️",
+                icon = "下节",
                 label = "下节",
                 value = currentInfo.nextClassName,
                 accentColor = colors.primary,
-                bgColor = colors.cardBackground,
+                bgColor = Color(0xFFEDF4FF),
                 borderColor = colors.primary.copy(alpha = 0.3f),
                 textColor = colors.textPrimary,
                 modifier = Modifier.weight(1f)
             )
-            // 剩余时间卡片
             InfoChip(
-                icon = "⏱",
+                icon = "剩余",
                 label = "剩余",
                 value = currentInfo.remainingTime,
                 accentColor = if (currentInfo.remainingMinutes in 1..5) colors.warning else colors.accent,
-                bgColor = colors.cardBackground,
+                bgColor = Color(0xFFFFF5EA),
                 borderColor = if (currentInfo.remainingMinutes in 1..5) colors.warning.copy(alpha = 0.3f)
                 else colors.accent.copy(alpha = 0.3f),
                 textColor = colors.textPrimary,
@@ -545,24 +636,197 @@ private fun InfoChip(
 ) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(bgColor)
-            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
-            .padding(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .border(1.dp, borderColor, RoundedCornerShape(18.dp))
+            .padding(horizontal = 10.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.Start
     ) {
-        Text(icon, fontSize = 20.sp)
-        Spacer(Modifier.height(4.dp))
-        Text(label, fontSize = 11.sp, color = accentColor, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.height(2.dp))
+        Text(icon, fontSize = 11.sp, color = accentColor, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
         Text(
             value,
-            fontSize = 15.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = textColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            label,
+            fontSize = 11.sp,
+            color = accentColor.copy(alpha = 0.85f),
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+@Composable
+private fun ScheduleFocusBoard(
+    todayKey: String,
+    currentInfo: ClassInfo,
+    currentSubject: Subject?,
+    nextSubject: Subject?,
+    currentTimeStr: String,
+    colors: com.rollcall.app.ui.theme.AppColors
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(26.dp))
+            .background(colors.cardBackground.copy(alpha = 0.92f))
+            .border(1.dp, colors.cardBorder, RoundedCornerShape(26.dp))
+            .padding(18.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = when {
+                        todayKey == "无" -> "等待星期信息"
+                        currentSubject != null -> "当前进度"
+                        nextSubject != null -> "下一节课"
+                        else -> "今日已结束"
+                    },
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = when {
+                        currentSubject != null -> "${currentSubject.subject} · ${currentSubject.startTime} - ${currentSubject.endTime}"
+                        nextSubject != null -> "${nextSubject.subject} · ${nextSubject.startTime} 开始"
+                        todayKey == "无" -> "网络时间还没有同步成功"
+                        else -> "今天的课程已经全部结束"
+                    },
+                    fontSize = 15.sp,
+                    color = colors.textSecondary
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        when {
+                            currentSubject != null -> colors.success.copy(alpha = 0.12f)
+                            nextSubject != null -> colors.primary.copy(alpha = 0.12f)
+                            else -> colors.accent.copy(alpha = 0.12f)
+                        }
+                    )
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Text(
+                    text = currentTimeStr,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+
+        val progress = remember(currentTimeStr, currentSubject) {
+            computeClassProgress(currentTimeStr, currentSubject)
+        }
+        MiniTimelineBar(
+            progress = progress,
+            accent = when {
+                currentSubject != null -> colors.success
+                nextSubject != null -> colors.primary
+                else -> colors.accent
+            }
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FocusMetaCard(
+                title = "状态",
+                value = when {
+                    currentSubject != null -> "正在上课"
+                    nextSubject != null -> "等待上课"
+                    todayKey == "无" -> "未同步"
+                    else -> "放学中"
+                },
+                accent = when {
+                    currentSubject != null -> colors.success
+                    nextSubject != null -> colors.primary
+                    todayKey == "无" -> colors.warning
+                    else -> colors.accent
+                },
+                modifier = Modifier.weight(1f)
+            )
+            FocusMetaCard(
+                title = "剩余",
+                value = currentInfo.remainingTime,
+                accent = if (currentInfo.remainingMinutes in 1..5) colors.warning else colors.accent,
+                modifier = Modifier.weight(1f)
+            )
+            FocusMetaCard(
+                title = "下节",
+                value = nextSubject?.subject ?: currentInfo.nextClassName,
+                accent = colors.primary,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+@Composable
+private fun MiniTimelineBar(
+    progress: Float,
+    accent: Color
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(14.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(Color(0xFFE9EEF8))
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(progress.coerceIn(0f, 1f))
+                .clip(RoundedCornerShape(999.dp))
+                .background(
+                    Brush.horizontalGradient(
+                        listOf(accent.copy(alpha = 0.7f), accent)
+                    )
+                )
+        )
+    }
+}
+
+@Composable
+private fun FocusMetaCard(
+    title: String,
+    value: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.75f))
+            .border(1.dp, accent.copy(alpha = 0.22f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 12.dp, vertical = 12.dp)
+    ) {
+        Text(text = title, fontSize = 11.sp, color = accent, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(5.dp))
+        Text(
+            text = value,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF29334D),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -605,39 +869,46 @@ private fun ScheduleClassCard(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(bgColor)
             .border(
-                width = if (isCurrent) 2.dp else 1.dp,
+                width = if (isCurrent) 3.dp else if (isNext) 2.dp else 1.dp,
                 color = borderColor.let { if (isCurrent) it.copy(alpha = pulseAlpha) else it },
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(22.dp)
             )
-            .padding(12.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 节次指示
-        Box(
+        Column(
             modifier = Modifier
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(badgeColor.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
+                .width(78.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(badgeColor.copy(alpha = 0.12f))
+                .padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "${subject.period}",
-                fontSize = 16.sp,
+                "第${subject.period}节",
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = badgeColor
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "${subject.startTime}\n${subject.endTime}",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = colors.textSecondary,
+                textAlign = TextAlign.Center
             )
         }
         Spacer(Modifier.width(12.dp))
 
-        // 课程名和时间
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     subject.subject,
-                    fontSize = 18.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = colors.textPrimary,
                     maxLines = 1,
@@ -651,7 +922,7 @@ private fun ScheduleClassCard(
                             .background(colors.success.copy(alpha = 0.15f))
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Text("进行中", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.success)
+                        Text("当前", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.success)
                     }
                 }
                 if (isNext) {
@@ -662,31 +933,51 @@ private fun ScheduleClassCard(
                             .background(colors.primary.copy(alpha = 0.12f))
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                     ) {
-                        Text("下节课", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primary)
+                        Text("下一节", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = colors.primary)
                     }
                 }
             }
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             Text(
-                "${subject.startTime} — ${subject.endTime}",
+                "${subject.startTime} - ${subject.endTime} · ${resolveCourseSessionLabel(subject.startTime)}",
                 fontSize = 14.sp,
-                color = colors.textHint
+                color = colors.textSecondary
             )
-        }
-
-        // 下课时间
-        if (subject.dismissalTime.isNotEmpty()) {
-            Column(horizontalAlignment = Alignment.End) {
-                Text("下课", fontSize = 11.sp, color = colors.textHint)
+            if (subject.dismissalTime.isNotEmpty()) {
+                Spacer(Modifier.height(6.dp))
                 Text(
-                    subject.dismissalTime,
-                    fontSize = 14.sp,
+                    text = "下课时间 ${subject.dismissalTime}",
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
-                    color = colors.textSecondary
+                    color = colors.textHint
                 )
             }
         }
     }
+}
+
+private fun formatTodayHeadline(todayKey: String, currentInfo: ClassInfo): String = when {
+    todayKey == "无" -> "正在等待网络时间同步，课表会在识别到星期后自动切换。"
+    currentInfo.currentIndex >= 0 -> "今天是 $todayKey，当前处于上课阶段，时间轴会自动高亮当前节次。"
+    currentInfo.nextIndex >= 0 -> "今天是 $todayKey，当前还没到上课时间或处于课间。"
+    else -> "今天是 $todayKey，课程已结束。"
+}
+
+private fun computeClassProgress(currentTimeStr: String, subject: Subject?): Float {
+    if (subject == null) return 0f
+    val formatter = DateTimeFormatter.ofPattern("HH:mm")
+    val now = parseTime(currentTimeStr, formatter) ?: return 0f
+    val start = parseTime(subject.startTime, formatter) ?: return 0f
+    val end = parseTime(subject.endTime, formatter) ?: return 0f
+    val total = Duration.between(start, end).toMinutes().coerceAtLeast(1)
+    val elapsed = Duration.between(start, now).toMinutes()
+    return (elapsed.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+}
+
+private fun resolveCourseSessionLabel(startTime: String): String = when (resolveDaySession(startTime, 0)) {
+    DaySession.MORNING -> "上午"
+    DaySession.AFTERNOON -> "下午"
+    DaySession.EVENING -> "晚上"
 }
 
 @Composable

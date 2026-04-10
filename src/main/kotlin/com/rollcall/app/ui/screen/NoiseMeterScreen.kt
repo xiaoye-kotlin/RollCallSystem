@@ -9,6 +9,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,11 +69,17 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
     var statusMessage by remember { mutableStateOf("正在连接麦克风...") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showContent by remember { mutableStateOf(false) }
+    var isPaused by remember { mutableStateOf(false) }
+    val latestPausedState by rememberUpdatedState(isPaused)
 
     LaunchedEffect(Unit) {
         showContent = true
         captureMicrophoneNoise(
             onReading = { reading ->
+                if (latestPausedState) {
+                    statusMessage = "已暂停，当前显示为冻结数值"
+                    return@captureMicrophoneNoise
+                }
                 noiseLevel = reading.normalizedLevel
                 estimatedDb = reading.estimatedDb
                 peakLevel = maxOf(peakLevel * 0.985f, reading.normalizedLevel)
@@ -148,7 +155,11 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
                             Column {
                                 Text("噪音检测", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
                                 Text(
-                                    text = if (errorMessage == null) "实时麦克风采样" else "麦克风不可用",
+                                    text = when {
+                                        errorMessage != null -> "麦克风不可用"
+                                        isPaused -> "已暂停"
+                                        else -> "实时麦克风采样"
+                                    },
                                     fontSize = 12.sp,
                                     color = colors.textHint
                                 )
@@ -239,6 +250,32 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
 
                 Spacer(Modifier.height(16.dp))
 
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    NoiseActionButton(
+                        label = if (isPaused) "继续采样" else "暂停冻结",
+                        accent = if (isPaused) colors.primary else colors.warning,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        isPaused = !isPaused
+                        if (!isPaused) {
+                            statusMessage = "已恢复实时采样"
+                        }
+                    }
+                    NoiseActionButton(
+                        label = "重置峰值",
+                        accent = colors.accent,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        peakLevel = noiseLevel
+                        peakDb = estimatedDb
+                    }
+                }
+
+                Spacer(Modifier.height(14.dp))
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -291,6 +328,32 @@ fun NoiseMeterScreen(onClose: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NoiseActionButton(
+    label: String,
+    accent: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.78f))
+            .border(1.dp, accent.copy(alpha = 0.24f), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = accent,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

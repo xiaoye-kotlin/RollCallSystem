@@ -54,11 +54,31 @@ fun RandomQuizScreen(onClose: () -> Unit) {
             QuizQuestion("第一次世界大战开始于哪一年？", "历史", listOf("1912年", "1914年", "1918年", "1939年"), 1)
         )
     }
+    val subjects = remember(questions) { listOf("全部") + questions.map { it.subject }.distinct() }
+    var selectedSubject by remember { mutableStateOf("全部") }
+    val availableQuestions = remember(questions, selectedSubject) {
+        if (selectedSubject == "全部") questions.toList() else questions.filter { it.subject == selectedSubject }
+    }
 
     var currentQuestion by remember { mutableStateOf<QuizQuestion?>(null) }
     var selectedAnswer by remember { mutableStateOf(-1) }
     var showAnswer by remember { mutableStateOf(false) }
     var isAnimating by remember { mutableStateOf(false) }
+    val correctAnswerText = currentQuestion?.options?.getOrNull(currentQuestion?.correctIndex ?: -1).orEmpty()
+
+    fun drawRandomQuestion() {
+        if (availableQuestions.isEmpty() || isAnimating) return
+        isAnimating = true
+        showAnswer = false
+        selectedAnswer = -1
+        currentQuestion = availableQuestions.random()
+    }
+
+    LaunchedEffect(selectedSubject) {
+        currentQuestion = null
+        selectedAnswer = -1
+        showAnswer = false
+    }
 
     Window(
         onCloseRequest = onClose,
@@ -69,7 +89,7 @@ fun RandomQuizScreen(onClose: () -> Unit) {
         resizable = false,
         state = rememberWindowState(
             position = WindowPosition(Alignment.Center),
-            size = DpSize(550.dp, 600.dp)
+            size = DpSize(620.dp, 720.dp)
         )
     ) {
         com.rollcall.app.ui.theme.AppTheme {
@@ -90,10 +110,41 @@ fun RandomQuizScreen(onClose: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("🎯", fontSize = 28.sp)
                         Spacer(Modifier.width(8.dp))
-                        Text("随机抽题", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                        Column {
+                            Text("随机抽题", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = colors.textPrimary)
+                            Text(
+                                "当前题库 ${availableQuestions.size} 题${if (selectedSubject == "全部") "" else " · $selectedSubject"}",
+                                fontSize = 12.sp,
+                                color = colors.textHint
+                            )
+                        }
                     }
                     IconButton(onClick = onClose) {
                         Icon(Icons.Default.Close, "关闭", tint = colors.textSecondary)
+                    }
+                }
+
+                subjects.chunked(4).forEachIndexed { rowIndex, row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp)
+                            .padding(bottom = if (rowIndex == subjects.chunked(4).lastIndex) 14.dp else 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        row.forEach { subject ->
+                            SubjectChip(
+                                label = subject,
+                                selected = selectedSubject == subject,
+                                colors = colors,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                selectedSubject = subject
+                            }
+                        }
+                        repeat(4 - row.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
                 }
 
@@ -108,19 +159,16 @@ fun RandomQuizScreen(onClose: () -> Unit) {
                                 listOf(colors.primary, colors.primary.copy(alpha = 0.8f))
                             )
                         )
-                        .clickable {
-                            if (!isAnimating) {
-                                isAnimating = true
-                                showAnswer = false
-                                selectedAnswer = -1
-                                currentQuestion = questions.random()
-                            }
-                        }
+                        .clickable(enabled = availableQuestions.isNotEmpty()) { drawRandomQuestion() }
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (currentQuestion == null) "🎲 点击抽题" else "🔄 换一题",
+                        when {
+                            availableQuestions.isEmpty() -> "当前科目暂无题目"
+                            currentQuestion == null -> "🎲 点击抽题"
+                            else -> "🔄 换一题"
+                        },
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.onPrimary
@@ -223,6 +271,27 @@ fun RandomQuizScreen(onClose: () -> Unit) {
                                 }
                             }
                         }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            QuizActionButton(
+                                label = if (showAnswer) "再抽一题" else "跳过本题",
+                                accent = colors.primary,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                drawRandomQuestion()
+                            }
+                            QuizActionButton(
+                                label = if (showAnswer) "答案：$correctAnswerText" else "等待作答",
+                                accent = if (showAnswer) colors.success else colors.textHint,
+                                enabled = showAnswer,
+                                modifier = Modifier.weight(1f)
+                            ) {}
+                        }
                     }
                 } else {
                     // 无题目时的占位
@@ -233,12 +302,77 @@ fun RandomQuizScreen(onClose: () -> Unit) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("📝", fontSize = 60.sp)
                             Spacer(Modifier.height(8.dp))
-                            Text("点击上方按钮随机抽取题目", fontSize = 16.sp, color = colors.textHint)
+                            Text(
+                                if (availableQuestions.isEmpty()) "当前筛选下暂无题目" else "点击上方按钮随机抽取题目",
+                                fontSize = 16.sp,
+                                color = colors.textHint
+                            )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun SubjectChip(
+    label: String,
+    selected: Boolean,
+    colors: com.rollcall.app.ui.theme.AppColors,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) colors.primary.copy(alpha = 0.12f) else colors.cardBackground)
+            .border(
+                1.dp,
+                if (selected) colors.primary.copy(alpha = 0.35f) else colors.cardBorder,
+                RoundedCornerShape(10.dp)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (selected) colors.primary else colors.textSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun QuizActionButton(
+    label: String,
+    accent: Color,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (enabled) accent.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.6f))
+            .border(1.dp, accent.copy(alpha = if (enabled) 0.3f else 0.16f), RoundedCornerShape(12.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (enabled) accent else accent.copy(alpha = 0.5f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
     }
 }
 

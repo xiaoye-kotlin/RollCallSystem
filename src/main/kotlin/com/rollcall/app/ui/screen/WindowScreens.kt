@@ -31,6 +31,13 @@ private const val OPTIONS_WINDOW_WIDTH_DP = 340
 private const val OPTIONS_WINDOW_HEIGHT_DP = 860
 private const val OPTIONS_WINDOW_MARGIN_RIGHT_PX = 180
 private const val DRAG_BALL_SIZE_PX = 100
+private const val DRAG_TRIGGER_DISTANCE_PX = 5
+private const val QUICK_TOOLS_TARGET_TOP_PX = 120
+private const val QUICK_TOOLS_TARGET_BOTTOM_PX = 250
+private const val COUNTDOWN_TARGET_ONE_TOP_PX = 332
+private const val COUNTDOWN_TARGET_FOUR_BOTTOM_PX = 764
+private const val COUNTDOWN_TARGET_HEIGHT_PX = 82
+private const val COUNTDOWN_TARGET_GAP_PX = 12
 
 /**
  * 倒数日窗口
@@ -239,7 +246,6 @@ fun ApplicationScope.FloatingWindow(
         var pressJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
         Box(Modifier.width(100.dp).height(100.dp)) {
-            val dragThreshold = 5
             val clickThreshold = 200L
 
             // 设置鼠标事件监听
@@ -311,9 +317,13 @@ fun ApplicationScope.FloatingWindow(
                             lastMouseLocation?.let { lastLoc ->
                                 val dx = e.locationOnScreen.x - lastLoc.first
                                 val dy = e.locationOnScreen.y - lastLoc.second
-                                if (kotlin.math.abs(dx) > dragThreshold || kotlin.math.abs(dy) > dragThreshold) {
+                                if (
+                                    kotlin.math.abs(dx) > DRAG_TRIGGER_DISTANCE_PX ||
+                                    kotlin.math.abs(dy) > DRAG_TRIGGER_DISTANCE_PX
+                                ) {
                                     pressJob?.cancel()
                                     AppState.setIsLongPressed(false)
+                                    isClick = false
                                     val newLoc = window.location.apply { x += dx; y += dy }
                                     javax.swing.SwingUtilities.invokeLater {
                                         window.location = newLoc
@@ -345,13 +355,14 @@ private fun handleWindowDrop(
     countDownType: Int,
     onOpenQuickTools: () -> Unit
 ) {
-    when (detectDropTarget(location, countDownType)) {
+    val dropTarget = detectDropTarget(location, countDownType)
+    when (dropTarget) {
         DROP_TARGET_QUICK_TOOLS -> {
             onOpenQuickTools()
             return
         }
         1, 2, 3, 4 -> {
-            AppState.setCountDownType(detectDropTarget(location, countDownType))
+            AppState.setCountDownType(dropTarget)
             return
         }
     }
@@ -369,17 +380,21 @@ private fun detectDropTarget(
     if (!inPanelX) return DROP_TARGET_NONE
 
     val localY = pointerY - panelBounds.y
-    if (localY in 125..235) {
+    if (localY in QUICK_TOOLS_TARGET_TOP_PX..QUICK_TOOLS_TARGET_BOTTOM_PX) {
         return DROP_TARGET_QUICK_TOOLS
     }
 
     if (countDownType == 0) {
-        return when {
-            localY in 330..430 -> 1
-            localY in 431..531 -> 2
-            localY in 532..632 -> 3
-            localY in 633..760 -> 4
-            else -> DROP_TARGET_NONE
+        if (localY !in COUNTDOWN_TARGET_ONE_TOP_PX..COUNTDOWN_TARGET_FOUR_BOTTOM_PX) {
+            return DROP_TARGET_NONE
+        }
+
+        val step = COUNTDOWN_TARGET_HEIGHT_PX + COUNTDOWN_TARGET_GAP_PX
+        val relativeY = localY - COUNTDOWN_TARGET_ONE_TOP_PX
+        val slotIndex = relativeY / step
+        val slotOffset = relativeY % step
+        if (slotIndex in 0..3 && slotOffset <= COUNTDOWN_TARGET_HEIGHT_PX) {
+            return slotIndex + 1
         }
     }
 
