@@ -192,7 +192,8 @@ fun MoreOptionsWindow(isVisible: Boolean) {
 fun ApplicationScope.FloatingWindow(
     isCountDownOpen: Boolean,
     countDownType: Int,
-    isChangeFace: Boolean
+    isChangeFace: Boolean,
+    onOpenQuickTools: () -> Unit
 ) {
     Window(
         onCloseRequest = { },
@@ -239,9 +240,17 @@ fun ApplicationScope.FloatingWindow(
 
                 window.addMouseListener(object : java.awt.event.MouseAdapter() {
                     override fun mousePressed(e: java.awt.event.MouseEvent?) {
+                        if (e == null || !javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+                            isClick = false
+                            isDraggingBox = false
+                            lastMouseLocation = null
+                            AppState.setIsDragging(false)
+                            pressJob?.cancel()
+                            return
+                        }
                         pressTime = System.currentTimeMillis()
                         isClick = true
-                        lastMouseLocation = e?.locationOnScreen?.let { Pair(it.x, it.y) }
+                        lastMouseLocation = e.locationOnScreen.let { Pair(it.x, it.y) }
                         isDraggingBox = true
                         AppState.setIsDragging(true)
 
@@ -254,6 +263,22 @@ fun ApplicationScope.FloatingWindow(
                     }
 
                     override fun mouseReleased(e: java.awt.event.MouseEvent?) {
+                        if (e == null) return
+
+                        if (javax.swing.SwingUtilities.isRightMouseButton(e)) {
+                            isDraggingBox = false
+                            lastMouseLocation = null
+                            AppState.setIsDragging(false)
+                            AppState.setIsLongPressed(false)
+                            pressJob?.cancel()
+                            onOpenQuickTools()
+                            return
+                        }
+
+                        if (!javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+                            return
+                        }
+
                         val clickDuration = System.currentTimeMillis() - pressTime
                         if (clickDuration < clickThreshold && isClick) {
                             AppState.setButtonState("关闭")
@@ -266,7 +291,7 @@ fun ApplicationScope.FloatingWindow(
                         AppState.setIsDragging(false)
                         pressJob?.cancel()
 
-                        e?.locationOnScreen?.let { mouseLocation ->
+                        e.locationOnScreen.let { mouseLocation ->
                             val loc = window.location.apply {
                                 x = mouseLocation.x - window.width / 2
                                 y = mouseLocation.y - window.height / 2
@@ -279,16 +304,16 @@ fun ApplicationScope.FloatingWindow(
 
                 window.addMouseMotionListener(object : java.awt.event.MouseMotionAdapter() {
                     override fun mouseDragged(e: java.awt.event.MouseEvent?) {
-                        if (isDraggingBox) {
+                        if (e != null && javax.swing.SwingUtilities.isLeftMouseButton(e) && isDraggingBox) {
                             lastMouseLocation?.let { lastLoc ->
-                                val dx = e?.locationOnScreen?.x?.minus(lastLoc.first) ?: 0
-                                val dy = e?.locationOnScreen?.y?.minus(lastLoc.second) ?: 0
+                                val dx = e.locationOnScreen.x - lastLoc.first
+                                val dy = e.locationOnScreen.y - lastLoc.second
                                 if (kotlin.math.abs(dx) > dragThreshold || kotlin.math.abs(dy) > dragThreshold) {
                                     pressJob?.cancel()
                                     AppState.setIsLongPressed(false)
                                     val newLoc = window.location.apply { x += dx; y += dy }
                                     javax.swing.SwingUtilities.invokeLater { window.location = newLoc }
-                                    lastMouseLocation = e?.locationOnScreen?.let { Pair(it.x, it.y) }
+                                    lastMouseLocation = e.locationOnScreen.let { Pair(it.x, it.y) }
                                 }
                             }
                         }

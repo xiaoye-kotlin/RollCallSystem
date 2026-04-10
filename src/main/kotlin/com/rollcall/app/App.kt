@@ -360,6 +360,9 @@ fun main() = application {
     // ==================== 悬浮窗系统 ====================
     val isChangeFace = AppState.isChangeFace.collectAsState()
     var isRunCountdownDay by remember { mutableStateOf(false) }
+    var isQuickToolsOpen by remember { mutableStateOf(false) }
+    var isStatisticsOpen by remember { mutableStateOf(false) }
+    var isGroupGeneratorOpen by remember { mutableStateOf(false) }
 
     if (floatingWindowVisible && !isEasterEgg.value) {
         // 倒数日窗口
@@ -396,8 +399,39 @@ fun main() = application {
         FloatingWindow(
             isCountDownOpen = isCountDownOpen.value,
             countDownType = countDownType.value,
-            isChangeFace = isChangeFace.value
+            isChangeFace = isChangeFace.value,
+            onOpenQuickTools = {
+                isQuickToolsOpen = true
+                isStatisticsOpen = false
+                isGroupGeneratorOpen = false
+            }
         )
+
+        if (isQuickToolsOpen) {
+            QuickToolsPanel(
+                onClose = { isQuickToolsOpen = false },
+                onOpenStatistics = {
+                    isQuickToolsOpen = false
+                    isStatisticsOpen = true
+                },
+                onOpenGroupGenerator = {
+                    isQuickToolsOpen = false
+                    isGroupGeneratorOpen = true
+                }
+            )
+        }
+
+        if (isStatisticsOpen) {
+            StatisticsPanel(
+                onClose = { isStatisticsOpen = false }
+            )
+        }
+
+        if (isGroupGeneratorOpen) {
+            GroupGeneratorPanel(
+                onClose = { isGroupGeneratorOpen = false }
+            )
+        }
     }
 
     // ==================== 点名结果页面 ====================

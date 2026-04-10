@@ -33,7 +33,7 @@ import java.util.Locale
 
 /**
  * 快捷工具面板
- * 提供常用工具的快速入口：随机数生成器、今日课表摘要、随机选座等
+ * 提供当前已接入功能的快速入口
  *
  * @param onClose 关闭面板回调
  * @param onOpenStatistics 打开统计面板回调
@@ -132,51 +132,9 @@ fun QuickToolsPanel(
                     )
                 }
 
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(16.dp))
 
-                // 第二行
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    ToolButton(
-                        icon = "🔢",
-                        label = "随机数",
-                        accentColor = colors.success,
-                        colors = colors,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ToolButton(
-                        icon = "⏱",
-                        label = "倒计时",
-                        accentColor = colors.warning,
-                        colors = colors,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Spacer(Modifier.height(10.dp))
-
-                // 第三行
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    ToolButton(
-                        icon = "🎯",
-                        label = "随机选座",
-                        accentColor = Color(0xFF9B59B6),
-                        colors = colors,
-                        modifier = Modifier.weight(1f)
-                    )
-                    ToolButton(
-                        icon = "📋",
-                        label = "今日课表",
-                        accentColor = Color(0xFF1ABC9C),
-                        colors = colors,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                HelperCard(colors)
 
                 Spacer(Modifier.weight(1f))
 
@@ -190,6 +148,39 @@ fun QuickToolsPanel(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HelperCard(colors: com.rollcall.app.ui.theme.AppColors) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(colors.cardBackground)
+            .border(1.dp, colors.cardBorder, RoundedCornerShape(18.dp))
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "操作提示",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textPrimary
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "左键单击悬浮球开始点名，长按触发多人抽取，拖拽仍然用于倒计时投放。",
+            fontSize = 13.sp,
+            color = colors.textSecondary,
+            lineHeight = 20.sp
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "右键悬浮球可随时打开这个快捷工具面板。",
+            fontSize = 13.sp,
+            color = colors.textHint,
+            lineHeight = 20.sp
+        )
     }
 }
 
