@@ -269,25 +269,24 @@ object NetworkHelper {
                 if (isZip) {
                     // ZIP文件自动解压（带Zip Slip路径遍历防护）
                     println("\"download\" 检测到ZIP文件，正在解压...")
-                    val canonicalTargetDir = targetDir.canonicalFile
-                    val canonicalTargetPath = canonicalTargetDir.path + File.separator
+                    val targetPath = targetDir.canonicalFile.toPath().normalize()
                     response.body.byteStream().use { inputStream ->
                         ZipInputStream(inputStream).use { zip ->
                             var entry = zip.nextEntry
                             var count = 0
                             while (entry != null) {
                                 count++
-                                val file = File(canonicalTargetDir, entry.name)
-                                val canonicalFile = file.canonicalFile
+                                val filePath = targetPath.resolve(entry.name).normalize()
                                 // 防止Zip Slip攻击：验证解压路径不超出目标目录
-                                if (!canonicalFile.path.startsWith(canonicalTargetPath)) {
+                                if (!filePath.startsWith(targetPath)) {
                                     throw IOException("ZIP条目包含非法路径: ${entry.name}")
                                 }
+                                val file = filePath.toFile()
                                 if (entry.isDirectory) {
-                                    canonicalFile.mkdirs()
+                                    file.mkdirs()
                                 } else {
-                                    canonicalFile.parentFile?.mkdirs()
-                                    FileOutputStream(canonicalFile).use { fos -> zip.copyTo(fos) }
+                                    file.parentFile?.mkdirs()
+                                    FileOutputStream(file).use { fos -> zip.copyTo(fos) }
                                 }
                                 entry = zip.nextEntry
                             }
