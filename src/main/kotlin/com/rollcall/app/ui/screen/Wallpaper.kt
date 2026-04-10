@@ -17,6 +17,7 @@ import kotlinx.coroutines.*
 import java.awt.*
 import java.io.File
 import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.network.NetworkHelper.getResourcePackageUrl
 import com.rollcall.app.state.AppState
 import com.rollcall.app.util.deleteFileOrDirectory
 import javax.swing.JFrame
@@ -34,7 +35,7 @@ fun videoWallpaper() {
             withContext(Dispatchers.IO) {
                 while (!downloadVideo) {
                     downloadVideo = checkAndCopyModel(
-                        "http://xy.wsmlbe.cn/Wallpaper.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/Wallpaper/")
+                        getResourcePackageUrl("Wallpaper.zip"), File("D:/Xiaoye/"), File("D:/Xiaoye/Wallpaper/")
                     )
                     if (downloadVideo) {
                         isDownloadSuccessfully.value = true

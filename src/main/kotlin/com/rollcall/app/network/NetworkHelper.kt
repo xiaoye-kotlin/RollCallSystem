@@ -76,6 +76,12 @@ object NetworkHelper {
         return fetchString(url)
     }
 
+    /** 构建站内资源包下载地址 */
+    fun getResourcePackageUrl(fileName: String): String {
+        val baseUrl = AppState.url.asHttpUrlOrNull() ?: DEFAULT_API_BASE_URL
+        return "${baseUrl.trimEnd('/')}/$fileName"
+    }
+
     // ==================== 远程配置获取 ====================
 
     /** 获取全局API域名 */

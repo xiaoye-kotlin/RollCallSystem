@@ -29,6 +29,7 @@ import java.io.File
 import javax.imageio.ImageIO
 import javax.swing.JFrame
 import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
+import com.rollcall.app.network.NetworkHelper.getResourcePackageUrl
 import com.rollcall.app.state.AppState
 
 class JfxComponentController {
@@ -71,7 +72,7 @@ fun easterEgg() {
         withContext(Dispatchers.IO) {
             while (!downloadMusic) {
                 downloadMusic = checkAndCopyModel(
-                    "http://xy.wsmlbe.cn/EasterEgg2.zip", File("D:/Xiaoye/"), File("D:/Xiaoye/EasterEgg/")
+                    getResourcePackageUrl("EasterEgg2.zip"), File("D:/Xiaoye/"), File("D:/Xiaoye/EasterEgg/")
                 )
                 if (downloadMusic) {
                     isDownloadSuccessfully.value = true

@@ -228,10 +228,12 @@ fun ApplicationScope.FloatingWindow(
         var isDraggingBox by remember { mutableStateOf(false) }
         var lastMouseLocation by remember { mutableStateOf<Pair<Int, Int>?>(null) }
         var pressJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+        var clickJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
         Box(Modifier.width(100.dp).height(100.dp)) {
             val dragThreshold = 5
             val clickThreshold = 200L
+            val doubleClickThreshold = 250L
 
             // 设置鼠标事件监听
             LaunchedEffect(Unit) {
@@ -265,23 +267,22 @@ fun ApplicationScope.FloatingWindow(
                     override fun mouseReleased(e: java.awt.event.MouseEvent?) {
                         if (e == null) return
 
-                        if (javax.swing.SwingUtilities.isRightMouseButton(e)) {
-                            isDraggingBox = false
-                            lastMouseLocation = null
-                            AppState.setIsDragging(false)
-                            AppState.setIsLongPressed(false)
-                            pressJob?.cancel()
-                            onOpenQuickTools()
-                            return
-                        }
-
                         if (!javax.swing.SwingUtilities.isLeftMouseButton(e)) {
                             return
                         }
 
                         val clickDuration = System.currentTimeMillis() - pressTime
                         if (clickDuration < clickThreshold && isClick) {
-                            AppState.setButtonState("关闭")
+                            if (e.clickCount >= 2) {
+                                clickJob?.cancel()
+                                onOpenQuickTools()
+                            } else {
+                                clickJob?.cancel()
+                                clickJob = kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                                    kotlinx.coroutines.delay(doubleClickThreshold)
+                                    AppState.setButtonState("关闭")
+                                }
+                            }
                             AppState.setIsLongPressed(false)
                             pressJob?.cancel()
                         }
@@ -311,6 +312,7 @@ fun ApplicationScope.FloatingWindow(
                                 if (kotlin.math.abs(dx) > dragThreshold || kotlin.math.abs(dy) > dragThreshold) {
                                     pressJob?.cancel()
                                     AppState.setIsLongPressed(false)
+                                    clickJob?.cancel()
                                     val newLoc = window.location.apply { x += dx; y += dy }
                                     javax.swing.SwingUtilities.invokeLater { window.location = newLoc }
                                     lastMouseLocation = e.locationOnScreen.let { Pair(it.x, it.y) }
