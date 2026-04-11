@@ -30,9 +30,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.rememberWindowState
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
-import com.rollcall.app.data.model.Student
 import com.rollcall.app.data.model.parseStudentJson
 import com.rollcall.app.ui.theme.AppTheme
 import com.rollcall.app.util.FileHelper
@@ -52,7 +49,7 @@ fun GroupGeneratorPanel(
     val allStudents = remember { loadStudentNames() }
     val groupOptions = remember(allStudents) { buildGroupOptions(allStudents.size) }
     var groupCount by remember(groupOptions) {
-        mutableStateOf(groupOptions.getOrElse(2) { groupOptions.lastOrNull() ?: 2 })
+        mutableStateOf(defaultGroupCount(groupOptions))
     }
     var groups by remember { mutableStateOf(generateGroups(allStudents, groupCount)) }
     var refreshCounter by remember { mutableStateOf(0) }
@@ -150,43 +147,52 @@ fun GroupGeneratorPanel(
                 }
 
                 // 组数选择
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    for (n in groupOptions) {
-                        val isSelected = n == groupCount
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isSelected) colors.primary.copy(alpha = 0.15f)
-                                    else colors.cardBackground
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isSelected) colors.primary.copy(alpha = 0.4f)
-                                    else colors.cardBorder,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .clickable(enabled = allStudents.isNotEmpty()) {
-                                    if (groupCount != n) {
-                                        groupCount = n
-                                        refreshCounter++
+                groupOptions.chunked(5).forEachIndexed { rowIndex, row ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = if (rowIndex == 0) 4.dp else 0.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        row.forEach { n ->
+                            val isSelected = n == groupCount
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (isSelected) colors.primary.copy(alpha = 0.15f)
+                                        else colors.cardBackground
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (isSelected) colors.primary.copy(alpha = 0.4f)
+                                        else colors.cardBorder,
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable(enabled = allStudents.isNotEmpty()) {
+                                        if (groupCount != n) {
+                                            groupCount = n
+                                            refreshCounter++
+                                        }
                                     }
-                                }
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                "${n}组",
-                                fontSize = 15.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) colors.primary else colors.textSecondary
-                            )
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "${n}组",
+                                    fontSize = 15.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) colors.primary else colors.textSecondary
+                                )
+                            }
                         }
+                        repeat(5 - row.size) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                    if (rowIndex != groupOptions.chunked(5).lastIndex) {
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
 
@@ -327,13 +333,7 @@ private fun generateGroups(students: List<String>, groupCount: Int): List<List<S
 
 private fun buildGroupOptions(studentCount: Int): List<Int> {
     if (studentCount <= 1) return listOf(1)
-
-    val preferred = listOf(2, 3, 4, 5, 6, 8)
-    val limited = preferred.filter { it <= studentCount }
-    if (limited.isNotEmpty()) {
-        return limited
-    }
-    return (2..studentCount.coerceAtMost(8)).toList()
+    return (2..studentCount.coerceAtMost(12)).toList()
 }
 
 private fun summarizeGroupSizes(groups: List<List<String>>): String {
@@ -361,4 +361,10 @@ private fun loadStudentNames(): List<String> {
     } catch (_: Exception) {
         emptyList()
     }
+}
+
+private fun defaultGroupCount(groupOptions: List<Int>): Int {
+    return groupOptions.firstOrNull { it >= 4 }
+        ?: groupOptions.lastOrNull()
+        ?: 1
 }

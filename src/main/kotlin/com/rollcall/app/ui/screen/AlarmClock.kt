@@ -167,15 +167,28 @@ fun countdownTimer(
 ): State<Long> {
     val isAlarmClock = AppState.isAlarmClock.collectAsState()
     val totalSeconds = totalMinutes * 60L
-    val remaining = remember { mutableStateOf(totalSeconds) }
+    val remaining = remember(totalSeconds) { mutableStateOf(totalSeconds) }
+    val controller = remember { JfxComponentController() }
 
-    LaunchedEffect(Unit) {
-        while (remaining.value > 0) {
+    DisposableEffect(Unit) {
+        onDispose {
+            controller.stopMedia()
+        }
+    }
+
+    LaunchedEffect(isAlarmClock.value, totalSeconds) {
+        if (!isAlarmClock.value) {
+            remaining.value = totalSeconds
+            controller.stopMedia()
+            return@LaunchedEffect
+        }
+
+        while (isActive && isAlarmClock.value && remaining.value > 0) {
             delay(1000)
             remaining.value--
         }
-        if (remaining.value == 0L) {
-            val controller = JfxComponentController()
+
+        if (isAlarmClock.value && remaining.value == 0L) {
             val musicPath = "D:/Xiaoye/Music/myBeauty.mp3"
 
             launch {
@@ -184,7 +197,6 @@ fun countdownTimer(
                         if (!isOn) {
                             println("闹钟被关闭，立即停止音乐")
                             controller.stopMedia()
-                            cancel() // 停止监听
                         }
                     }
             }
@@ -192,11 +204,6 @@ fun countdownTimer(
             controller.playMedia(musicPath) {
                 AppState.setIsAlarmHasBeenHeard(true)
             }
-
-            Runtime.getRuntime().addShutdownHook(Thread {
-                println("程序关闭，停止音乐播放")
-                controller.stopMedia()
-            })
         }
     }
 

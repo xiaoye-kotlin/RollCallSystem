@@ -43,7 +43,7 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 class JfxComponentController {
-    private lateinit var mediaPlayer: MediaPlayer
+    private var mediaPlayer: MediaPlayer? = null
 
     init {
         JFXPanel()
@@ -53,6 +53,7 @@ class JfxComponentController {
         filePath: String,
         onFinished: (() -> Unit)? = null
     ) {
+        stopMedia()
         val media = Media(File(filePath).toURI().toString())
         mediaPlayer = MediaPlayer(media).apply {
             setOnEndOfMedia {
@@ -64,7 +65,9 @@ class JfxComponentController {
     }
 
     fun stopMedia() {
-        mediaPlayer.stop()
+        mediaPlayer?.stop()
+        mediaPlayer?.dispose()
+        mediaPlayer = null
     }
 }
 
@@ -79,10 +82,17 @@ fun easterEgg() {
     val hasBeenPlayed = remember { mutableStateOf(false) }
     val isDownloadSuccessfully = remember { mutableStateOf(false) }
     var downloadMusic by remember { mutableStateOf(false) }
+    val controller = remember { JfxComponentController() }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            controller.stopMedia()
+        }
+    }
 
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) {
-            while (!downloadMusic) {
+            while (!downloadMusic && isActive) {
                 downloadMusic = checkAndCopyModel(
                     getResourcePackageUrl("EasterEgg2.zip"), File("D:/Xiaoye/"), File("D:/Xiaoye/EasterEgg/")
                 )
@@ -97,13 +107,8 @@ fun easterEgg() {
 
     if (isDownloadSuccessfully.value) {
         if (!isRun) {
-            val controller = JfxComponentController()
             val musicPath = "D:/Xiaoye/EasterEgg/EasterEgg.mp3"
             controller.playMedia(musicPath)
-            Runtime.getRuntime().addShutdownHook(Thread {
-                println("程序关闭，停止音乐播放")
-                controller.stopMedia()
-            })
             isRun = true
         }
 

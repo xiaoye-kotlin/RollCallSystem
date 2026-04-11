@@ -24,66 +24,71 @@ import com.rollcall.app.network.NetworkHelper.checkAndCopyModel
 import com.rollcall.app.network.NetworkHelper.getResourcePackageUrl
 import com.rollcall.app.state.AppState
 import com.rollcall.app.ui.theme.AppTheme
+import kotlinx.coroutines.isActive
 
 @Composable
 fun countdown() {
     val countDownType = AppState.countDownType.collectAsState()
-    var isRun by remember { mutableStateOf(false) }
     val isDownloadSuccessfully = remember { mutableStateOf(false) }
     var downloadMusic by remember { mutableStateOf(false) }
+    val controller = remember { JfxComponentController() }
+    var hasPlayedWarning by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.IO) {
-            while (!downloadMusic) {
-                downloadMusic = checkAndCopyModel(
-                    getResourcePackageUrl("Countdown.zip"), File("D:/Xiaoye/"), File("D:/Xiaoye/Countdown/")
-                )
-                if (downloadMusic) {
-                    isDownloadSuccessfully.value = true
-                    break
+    DisposableEffect(Unit) {
+        onDispose {
+            controller.stopMedia()
+        }
+    }
+
+    LaunchedEffect(countDownType.value) {
+        if (countDownType.value != 0 && !downloadMusic) {
+            withContext(Dispatchers.IO) {
+                while (!downloadMusic && isActive) {
+                    downloadMusic = checkAndCopyModel(
+                        getResourcePackageUrl("Countdown.zip"), File("D:/Xiaoye/"), File("D:/Xiaoye/Countdown/")
+                    )
+                    if (downloadMusic) {
+                        isDownloadSuccessfully.value = true
+                        break
+                    }
+                    delay(3000)
                 }
-                delay(3000)
             }
         }
     }
 
-    val times = when (countDownType.value) {
-        1 -> 60000L       // 1分钟
-        2 -> 180000L      // 3分钟
-        3 -> 300000L      // 5分钟
-        4 -> 600000L      // 10分钟
-        else -> 0L        // 默认情况
+    LaunchedEffect(countDownType.value) {
+        hasPlayedWarning = false
+        controller.stopMedia()
     }
 
-    var timeLeft by remember { mutableStateOf(times) }
+    var timeLeft by remember { mutableStateOf(0L) }
 
-    // 每秒减少一次
     LaunchedEffect(countDownType.value) {
-        while (timeLeft > 0) {
-            delay(1000)  // 每秒减少
-            timeLeft -= 1000
+        val activeType = countDownType.value
+        val totalDuration = countdownDurationMillis(activeType)
+        timeLeft = totalDuration
+
+        if (activeType == 0 || totalDuration <= 0L) {
+            return@LaunchedEffect
+        }
+
+        while (isActive && AppState.countDownType.value == activeType && timeLeft > 0L) {
+            delay(1000)
+            timeLeft = (timeLeft - 1000L).coerceAtLeast(0L)
         }
     }
 
     LaunchedEffect(timeLeft) {
-        if (timeLeft == 3000L) {
-            if (!isRun) {
-
-                val controller = JfxComponentController()
-
+        if (countDownType.value != 0 && timeLeft == 3000L && !hasPlayedWarning) {
+            hasPlayedWarning = true
+            if (isDownloadSuccessfully.value) {
                 val musicPath = "D:/Xiaoye/Countdown/Countdown.mp3"
-
                 controller.playMedia(musicPath)
-
-                Runtime.getRuntime().addShutdownHook(Thread {
-                    println("程序关闭，停止音乐播放")
-                    controller.stopMedia()
-                })
-
-                isRun = true
             }
         }
-        if (timeLeft <= 0L) {
+        if (countDownType.value != 0 && timeLeft <= 0L) {
+            controller.stopMedia()
             AppState.setCountDownType(0)
             AppState.setButtonState("关闭")
         }
@@ -154,4 +159,14 @@ fun formatTime(milliseconds: Long): String {
     val minutes = (milliseconds / 1000) / 60
     val seconds = (milliseconds / 1000) % 60
     return String.format("%02d:%02d", minutes, seconds)
+}
+
+private fun countdownDurationMillis(type: Int): Long {
+    return when (type) {
+        1 -> 60_000L
+        2 -> 180_000L
+        3 -> 300_000L
+        4 -> 600_000L
+        else -> 0L
+    }
 }

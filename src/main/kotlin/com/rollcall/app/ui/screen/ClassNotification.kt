@@ -98,9 +98,9 @@ fun ClassNotificationHost() {
     }
 
     // 显示通知窗口
-    if (currentNotification != null) {
+    currentNotification?.let { notification ->
         NotificationPopupWindow(
-            notification = currentNotification!!,
+            notification = notification,
             isVisible = isVisible
         )
     }

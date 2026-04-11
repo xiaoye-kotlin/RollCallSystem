@@ -183,8 +183,7 @@ fun RandomQuizScreen(onClose: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
 
                 // 题目显示区域
-                if (currentQuestion != null) {
-                    val q = currentQuestion!!
+                currentQuestion?.let { q ->
 
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                         // 科目标签
@@ -293,7 +292,7 @@ fun RandomQuizScreen(onClose: () -> Unit) {
                             ) {}
                         }
                     }
-                } else {
+                } ?: run {
                     // 无题目时的占位
                     Box(
                         modifier = Modifier.fillMaxSize(),

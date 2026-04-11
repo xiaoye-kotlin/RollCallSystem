@@ -21,6 +21,7 @@ import com.rollcall.app.network.NetworkHelper.getResourcePackageUrl
 import com.rollcall.app.state.AppState
 import com.rollcall.app.util.deleteFileOrDirectory
 import javax.swing.JFrame
+import javax.swing.WindowConstants
 
 @Composable
 fun videoWallpaper() {
@@ -60,7 +61,20 @@ fun videoWallpaper() {
     var frame: JFrame? by remember { mutableStateOf(null) }
     var isRunWallpaper by remember { mutableStateOf(false) }
 
-    JFXPanel()
+    DisposableEffect(Unit) {
+        onDispose {
+            Platform.runLater {
+                mediaPlayer?.stop()
+                mediaPlayer?.dispose()
+                mediaPlayer = null
+                fxPanel?.scene = null
+                fxPanel = null
+            }
+            frame?.dispose()
+            frame = null
+            isRunWallpaper = false
+        }
+    }
 
     LaunchedEffect(isWallpaper.value, isDownloadSuccessfully.value) {
         if (isWallpaper.value) {
@@ -89,37 +103,43 @@ fun videoWallpaper() {
                             val screenSize: Dimension = Toolkit.getDefaultToolkit().screenSize
 
                             frame = JFrame("Video Wallpaper").apply {
-                                defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+                                defaultCloseOperation = WindowConstants.DISPOSE_ON_CLOSE
                                 isUndecorated = true
                                 setSize(screenSize.width, screenSize.height)
                                 background = Color(0, 0, 0, 0)
                                 isVisible = true
                             }
 
-                            val hwndFrame = getHwnd(frame!!)
+                            val createdFrame = frame ?: return@LaunchedEffect
+
+                            val hwndFrame = getHwnd(createdFrame)
 
                             if (hwndFrame != null) {
                                 user32.SetParent(hwndFrame, progman)
                             }
 
-                                fxPanel = JFXPanel()
-                                fxPanel?.let { frame!!.contentPane.add(it, BorderLayout.CENTER) }
+                            fxPanel = JFXPanel()
+                            fxPanel?.let { createdFrame.contentPane.add(it, BorderLayout.CENTER) }
 
-                                Platform.runLater {
-                                    val media = Media(File("D:/Xiaoye/Wallpaper/wallpaper.mp4").toURI().toString())
-                                    mediaPlayer = MediaPlayer(media).apply {
-                                        isAutoPlay = true
-                                        cycleCount = MediaPlayer.INDEFINITE
-                                        volume = 0.0
-                                        rate = 1.0
-                                    }
-                                    val mediaView = MediaView(mediaPlayer).apply {
-                                        fitWidth = screenSize.width.toDouble()
-                                        fitHeight = screenSize.height.toDouble()
-                                        isPreserveRatio = false
-                                    }
-                                    fxPanel?.scene = Scene(StackPane(mediaView), screenSize.width.toDouble(), screenSize.height.toDouble())
+                            Platform.runLater {
+                                mediaPlayer?.stop()
+                                mediaPlayer?.dispose()
+
+                                val media = Media(File("D:/Xiaoye/Wallpaper/wallpaper.mp4").toURI().toString())
+                                mediaPlayer = MediaPlayer(media).apply {
+                                    isAutoPlay = true
+                                    cycleCount = MediaPlayer.INDEFINITE
+                                    volume = 0.0
+                                    rate = 1.0
                                 }
+                                val activePlayer = mediaPlayer ?: return@runLater
+                                val mediaView = MediaView(activePlayer).apply {
+                                    fitWidth = screenSize.width.toDouble()
+                                    fitHeight = screenSize.height.toDouble()
+                                    isPreserveRatio = false
+                                }
+                                fxPanel?.scene = Scene(StackPane(mediaView), screenSize.width.toDouble(), screenSize.height.toDouble())
+                            }
 
                         }
                     }
@@ -128,10 +148,13 @@ fun videoWallpaper() {
         } else {
             Platform.runLater {
                 fxPanel?.scene = null
+                mediaPlayer?.stop()
                 mediaPlayer?.dispose()
                 mediaPlayer = null
                 fxPanel = null
             }
+            frame?.dispose()
+            frame = null
             isRunWallpaper = false
         }
     }
