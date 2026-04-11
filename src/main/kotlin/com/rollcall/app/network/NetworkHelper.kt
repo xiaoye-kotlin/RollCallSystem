@@ -300,8 +300,7 @@ object NetworkHelper {
                 "【AI_TEMPERATURE】",
                 fallback.temperature.toString()
             ).toDoubleOrNull()?.coerceIn(0.0, 1.5) ?: fallback.temperature,
-            prompt = extractConfigValue(body, "【AI_PROMPT】", fallback.prompt)
-                .ifBlank { fallback.prompt },
+            prompt = AppState.DEFAULT_AI_PROMPT,
             autoIntervalSeconds = extractConfigValue(
                 body,
                 "【OCR_AUTO_INTERVAL_SECONDS】",

@@ -45,6 +45,7 @@ fun WordBookScreen(onClose: () -> Unit) {
     var rawEntries by remember { mutableStateOf(loadWordBookEntries()) }
     var keyword by remember { mutableStateOf("") }
     var showLearned by remember { mutableStateOf(true) }
+    var feedback by remember { mutableStateOf("") }
     val entries = remember(rawEntries, keyword, showLearned) {
         rawEntries.filter { entry ->
             val matchesKeyword = keyword.isBlank() ||
@@ -120,6 +121,16 @@ fun WordBookScreen(onClose: () -> Unit) {
                     }
                 }
 
+                if (feedback.isNotBlank()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        text = feedback,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.primary
+                    )
+                }
+
                 Spacer(Modifier.height(12.dp))
 
                 LazyColumn(
@@ -144,6 +155,7 @@ fun WordBookScreen(onClose: () -> Unit) {
                                 entry = entry,
                                 colors = colors,
                                 onSpeak = {
+                                    feedback = "正在朗读 ${entry.word}"
                                     AudioManager.playTextAudio(
                                         text = entry.word,
                                         baseUrl = com.rollcall.app.state.AppState.url,

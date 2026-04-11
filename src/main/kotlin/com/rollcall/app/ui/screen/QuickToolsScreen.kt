@@ -74,7 +74,7 @@ fun QuickToolsPanel(
         resizable = false,
         state = rememberWindowState(
             position = WindowPosition(Alignment.CenterEnd),
-            size = DpSize(368.dp, 660.dp)
+            size = DpSize(396.dp, 728.dp)
         )
     ) {
         AppTheme {
@@ -86,7 +86,9 @@ fun QuickToolsPanel(
                 ),
                 listOf(
                     ToolItem("🎯", "随机抽题", "课堂互动", colors.success, onOpenQuiz),
-                    ToolItem("📘", "生词本", "积累词汇", Color(0xFF4F86F7), onOpenWordBook),
+                    ToolItem("📘", "生词本", "积累词汇", Color(0xFF4F86F7), onOpenWordBook)
+                ),
+                listOf(
                     ToolItem("🔊", "噪音检测", "麦克风采样", Color(0xFFE45858), onOpenNoiseMeter),
                     ToolItem(
                         "⏱",
@@ -112,7 +114,7 @@ fun QuickToolsPanel(
                         )
                     )
                     .border(1.dp, colors.cardBorder.copy(alpha = 0.7f), RoundedCornerShape(26.dp))
-                    .padding(18.dp)
+                    .padding(horizontal = 18.dp, vertical = 16.dp)
             ) {
                 AnimatedVisibility(
                     visible = showContent,
@@ -138,7 +140,7 @@ fun QuickToolsPanel(
                     }
                 }
 
-                Spacer(Modifier.height(14.dp))
+                Spacer(Modifier.height(12.dp))
 
                 AnimatedVisibility(
                     visible = showContent,
@@ -150,7 +152,7 @@ fun QuickToolsPanel(
                     TodayInfoCard(colors)
                 }
 
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(14.dp))
 
                 AnimatedVisibility(
                     visible = showContent,
@@ -158,7 +160,7 @@ fun QuickToolsPanel(
                 ) {
                     Text(
                         "教学常用",
-                        fontSize = 14.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = colors.textHint,
                         modifier = Modifier.padding(bottom = 10.dp)
@@ -193,6 +195,26 @@ fun QuickToolsPanel(
                     if (rowIndex != toolRows.lastIndex) {
                         Spacer(Modifier.height(12.dp))
                     }
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.White.copy(alpha = 0.72f))
+                        .border(1.dp, colors.cardBorder.copy(alpha = 0.68f), RoundedCornerShape(18.dp))
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                ) {
+                    Text(
+                        "拖动菜单里可直接启动 OCR 识别",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.textHint,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
 
                 Spacer(Modifier.weight(1f))
@@ -461,25 +483,32 @@ private fun ToolButton(
             .background(Color.White.copy(alpha = 0.82f))
             .border(1.dp, accentColor.copy(alpha = 0.24f), RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 18.dp)
+            .height(152.dp)
+            .padding(horizontal = 10.dp, vertical = 16.dp)
             .animateContentSize(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(46.dp)
+                .size(52.dp)
                 .clip(CircleShape)
                 .background(accentColor.copy(alpha = 0.12f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(icon, fontSize = 22.sp)
+            Text(icon, fontSize = 24.sp)
         }
-        Spacer(Modifier.height(8.dp))
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = colors.textPrimary, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(3.dp))
+        Spacer(Modifier.height(10.dp))
+        Text(
+            label,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.textPrimary,
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(5.dp))
         Text(
             subtitle,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             color = accentColor.copy(alpha = 0.88f),
             textAlign = TextAlign.Center
         )
