@@ -410,6 +410,7 @@ fun main() = application {
     var showScheduleWindow by remember { mutableStateOf(false) }
     var showQuizScreen by remember { mutableStateOf(false) }
     var showNoiseMeterScreen by remember { mutableStateOf(false) }
+    var showWordBookScreen by remember { mutableStateOf(false) }
 
     if (floatingWindowVisible && !isEasterEgg.value) {
         if (showScheduleWidget) {
@@ -462,6 +463,9 @@ fun main() = application {
                 isQuickToolsOpen = true
                 isStatisticsOpen = false
                 isGroupGeneratorOpen = false
+            },
+            onOpenLearning = {
+                AppState.startLearning(AppState.LearningTriggerMode.MANUAL)
             }
         )
 
@@ -480,10 +484,8 @@ fun main() = application {
                     isGroupGeneratorOpen = true
                 },
                 onOpenQuiz = { showQuizScreen = true },
+                onOpenWordBook = { showWordBookScreen = true },
                 onOpenNoiseMeter = { showNoiseMeterScreen = true },
-                onOpenLearning = {
-                    AppState.startLearning(AppState.LearningTriggerMode.MANUAL)
-                },
                 onOpenCountdown = {
                     showCountdownPicker = true
                 }
@@ -507,6 +509,9 @@ fun main() = application {
         }
         if (showNoiseMeterScreen) {
             NoiseMeterScreen(onClose = { showNoiseMeterScreen = false })
+        }
+        if (showWordBookScreen) {
+            WordBookScreen(onClose = { showWordBookScreen = false })
         }
     }
 
@@ -563,6 +568,7 @@ private fun applyAiRemoteConfig(config: NetworkHelper.AiRemoteConfig) {
     AppState.aiApiUrl = config.apiUrl
     AppState.aiApiKey = config.apiKey
     AppState.aiModel = config.model
+    AppState.aiModelSupportsImage = config.modelSupportsImage
     AppState.aiTemperature = config.temperature
     AppState.aiPrompt = config.prompt
     AppState.learningAutoIntervalSeconds = config.autoIntervalSeconds

@@ -54,7 +54,7 @@ fun QuickToolsPanel(
     onOpenGroupGenerator: () -> Unit = {},
     onOpenQuiz: () -> Unit = {},
     onOpenNoiseMeter: () -> Unit = {},
-    onOpenLearning: () -> Unit = {},
+    onOpenWordBook: () -> Unit = {},
     onOpenCountdown: () -> Unit = {}
 ) {
     var showContent by remember { mutableStateOf(false) }
@@ -86,9 +86,7 @@ fun QuickToolsPanel(
                 ),
                 listOf(
                     ToolItem("🎯", "随机抽题", "课堂互动", colors.success, onOpenQuiz),
-                    ToolItem("📝", "OCR识词", "截图识别", Color(0xFF8E44AD), onOpenLearning)
-                ),
-                listOf(
+                    ToolItem("📘", "生词本", "积累词汇", Color(0xFF4F86F7), onOpenWordBook),
                     ToolItem("🔊", "噪音检测", "麦克风采样", Color(0xFFE45858), onOpenNoiseMeter),
                     ToolItem(
                         "⏱",

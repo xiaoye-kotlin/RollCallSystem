@@ -114,5 +114,19 @@ data class WordItem(
     val word: String,
     val type: String,
     val meaning: String,
-    val category: String
+    val category: String,
+    val example: String = "",
+    val root: String = ""
+)
+
+data class VocabularyBookEntry(
+    val word: String,
+    val type: String,
+    val meaning: String,
+    val category: String,
+    val example: String = "",
+    val root: String = "",
+    val addedAt: Long = System.currentTimeMillis(),
+    val addedCount: Int = 1,
+    val isLearned: Boolean = false
 )

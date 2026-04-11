@@ -153,6 +153,7 @@ fun title() {
         AppState.aiApiUrl = config.apiUrl
         AppState.aiApiKey = config.apiKey
         AppState.aiModel = config.model
+        AppState.aiModelSupportsImage = config.modelSupportsImage
         AppState.aiTemperature = config.temperature
         AppState.aiPrompt = config.prompt
         AppState.learningAutoIntervalSeconds = config.autoIntervalSeconds

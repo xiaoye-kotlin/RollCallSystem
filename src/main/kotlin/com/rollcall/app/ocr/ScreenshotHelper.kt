@@ -13,6 +13,30 @@ import javax.imageio.ImageIO
  * 支持高分辨率截图（Java 9+）和多显示器
  */
 object ScreenshotHelper {
+    private val ocrHelper = OcrHelper()
+
+    /**
+     * 静默截图
+     * 调用者负责管理返回截图文件生命周期
+     */
+    fun takeSilentScreenshot(): File {
+        val outputFile = File.createTempFile("rollcall_ocr_", ".png").apply {
+            deleteOnExit()
+        }
+
+        try {
+            val robot = Robot()
+            val screenBounds = getAllScreenBounds()
+            val image = tryGetHighResolutionScreenshot(robot, screenBounds)
+                ?: robot.createScreenCapture(screenBounds)
+
+            ImageIO.write(image, "png", outputFile)
+            return outputFile
+        } catch (e: Exception) {
+            try { if (outputFile.exists()) outputFile.delete() } catch (_: Exception) { }
+            throw e
+        }
+    }
 
     /**
      * 静默截图并进行OCR识别
@@ -20,30 +44,11 @@ object ScreenshotHelper {
      * @return Pair<截图文件, 识别结果文字>
      */
     fun takeSilentScreenshotAndRecognize(): Pair<File, String> {
-        val ocrHelper = OcrHelper()
-        val screenShotDir = File("screenshots/").apply { mkdirs() }
-        val outputFile = File(screenShotDir, "screenshot_${System.currentTimeMillis()}.png")
-
+        val outputFile = takeSilentScreenshot()
         try {
-            val robot = Robot()
-            val screenBounds = getAllScreenBounds()
-
-            // 优先使用高分辨率截图
-            val image = tryGetHighResolutionScreenshot(robot, screenBounds)
-                ?: robot.createScreenCapture(screenBounds)
-
-            ImageIO.write(image, "png", outputFile)
-            println("截图成功: ${outputFile.absolutePath} (${image.width}x${image.height})")
-
-            // 执行OCR识别
-            println("开始OCR识别...")
             val ocrResult = ocrHelper.recognizeImage(outputFile)
-            println("OCR识别完成")
-
             return Pair(outputFile, ocrResult)
         } catch (e: Exception) {
-            println("截图或识别失败: ${e.message}")
-            // 失败时清理截图文件
             try { if (outputFile.exists()) outputFile.delete() } catch (_: Exception) { }
             throw e
         }
@@ -98,8 +103,7 @@ object ScreenshotHelper {
                 }
             }
             bestImage ?: variants.firstOrNull() as? BufferedImage
-        } catch (e: Exception) {
-            println("高分辨率截图不可用，使用普通截图: ${e.message}")
+        } catch (_: Exception) {
             null
         }
     }

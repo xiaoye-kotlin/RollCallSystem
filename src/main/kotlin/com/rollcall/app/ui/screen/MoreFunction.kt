@@ -21,6 +21,7 @@ import com.rollcall.app.ui.theme.AppTheme
 
 const val DROP_TARGET_NONE = 0
 const val DROP_TARGET_QUICK_TOOLS = 100
+const val DROP_TARGET_OCR = 101
 
 @Composable
 fun moreFunction(isCountDownEnabled: Boolean, currentDropTarget: Int) {
@@ -59,6 +60,9 @@ fun moreFunction(isCountDownEnabled: Boolean, currentDropTarget: Int) {
             )
 
             ToolDropZone(colors, currentDropTarget)
+
+            Spacer(modifier = Modifier.height(14.dp))
+            OcrDropZone(colors, currentDropTarget)
 
             if (isCountDownEnabled) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -179,7 +183,69 @@ private fun ToolDropZone(
                     color = colors.textPrimary
                 )
                 Text(
-                    text = "统计 / 分组 / 抽题 / OCR / 噪音 / 倒计时",
+                    text = "统计 / 分组 / 抽题 / 噪音 / 倒计时",
+                    fontSize = 13.sp,
+                    color = colors.textHint
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OcrDropZone(
+    colors: com.rollcall.app.ui.theme.AppColors,
+    currentDropTarget: Int
+) {
+    val isActive = currentDropTarget == DROP_TARGET_OCR
+    Box(
+        modifier = Modifier
+            .padding(vertical = 6.dp)
+            .height(108.dp)
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                if (isActive) {
+                    Color(0xFF8E44AD).copy(alpha = 0.18f)
+                } else {
+                    colors.cardBackground
+                }
+            )
+            .border(
+                2.dp,
+                if (isActive) Color(0xFF8E44AD) else Color(0xFF8E44AD).copy(alpha = 0.35f),
+                RoundedCornerShape(20.dp)
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF8E44AD).copy(alpha = 0.14f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "OCR",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color(0xFF8E44AD)
+                )
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column(horizontalAlignment = Alignment.Start) {
+                Text(
+                    text = "生词识别",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.textPrimary
+                )
+                Text(
+                    text = "拖到这里松手，直接开始截图分析",
                     fontSize = 13.sp,
                     color = colors.textHint
                 )

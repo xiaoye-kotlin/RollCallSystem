@@ -34,7 +34,6 @@ class OcrHelper {
                 val text = runCatching {
                     recognizeWithEngine(imageFile, candidate)
                 }.onFailure { error ->
-                    println("${candidate.label} OCR识别失败: ${error.message}")
                     failures += "${candidate.label}: ${error.message ?: error::class.java.simpleName}"
                 }.getOrNull()
 

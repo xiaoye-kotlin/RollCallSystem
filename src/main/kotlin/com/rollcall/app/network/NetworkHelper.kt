@@ -53,6 +53,7 @@ object NetworkHelper {
         val apiUrl: String,
         val apiKey: String,
         val model: String,
+        val modelSupportsImage: Boolean,
         val temperature: Double,
         val prompt: String,
         val autoIntervalSeconds: Long
@@ -272,6 +273,7 @@ object NetworkHelper {
             apiUrl = AppState.aiApiUrl.asHttpUrlOrNull() ?: AppState.DEFAULT_AI_API_URL,
             apiKey = AppState.aiApiKey.trim(),
             model = AppState.aiModel.ifBlank { AppState.DEFAULT_AI_MODEL },
+            modelSupportsImage = AppState.aiModelSupportsImage,
             temperature = AppState.aiTemperature.coerceIn(0.0, 1.5),
             prompt = AppState.aiPrompt.ifBlank { AppState.DEFAULT_AI_PROMPT },
             autoIntervalSeconds = AppState.learningAutoIntervalSeconds.coerceIn(60L, 3600L)
@@ -288,6 +290,11 @@ object NetworkHelper {
             apiKey = extractConfigValue(body, "【AI_API_KEY】", fallback.apiKey).trim(),
             model = extractConfigValue(body, "【AI_MODEL】", fallback.model)
                 .ifBlank { fallback.model },
+            modelSupportsImage = extractConfigValue(
+                body,
+                "【AI_MODEL_SUPPORTS_IMAGE】",
+                fallback.modelSupportsImage.toString()
+            ).toBooleanStrictOrNull() ?: fallback.modelSupportsImage,
             temperature = extractConfigValue(
                 body,
                 "【AI_TEMPERATURE】",

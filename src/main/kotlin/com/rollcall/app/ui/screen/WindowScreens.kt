@@ -34,8 +34,10 @@ private const val DRAG_BALL_SIZE_PX = 100
 private const val DRAG_TRIGGER_DISTANCE_PX = 5
 private const val QUICK_TOOLS_TARGET_TOP_PX = 120
 private const val QUICK_TOOLS_TARGET_BOTTOM_PX = 250
-private const val COUNTDOWN_TARGET_ONE_TOP_PX = 332
-private const val COUNTDOWN_TARGET_FOUR_BOTTOM_PX = 764
+private const val OCR_TARGET_TOP_PX = 280
+private const val OCR_TARGET_BOTTOM_PX = 400
+private const val COUNTDOWN_TARGET_ONE_TOP_PX = 454
+private const val COUNTDOWN_TARGET_FOUR_BOTTOM_PX = 886
 private const val COUNTDOWN_TARGET_HEIGHT_PX = 82
 private const val COUNTDOWN_TARGET_GAP_PX = 12
 
@@ -212,7 +214,8 @@ fun ApplicationScope.FloatingWindow(
     countDownType: Int,
     isChangeFace: Boolean,
     onDropTargetChanged: (Int) -> Unit,
-    onOpenQuickTools: () -> Unit
+    onOpenQuickTools: () -> Unit,
+    onOpenLearning: () -> Unit
 ) {
     Window(
         onCloseRequest = { },
@@ -308,7 +311,7 @@ fun ApplicationScope.FloatingWindow(
                                     y = mouseLocation.y - window.height / 2
                                 }
                                 javax.swing.SwingUtilities.invokeLater { window.location = loc }
-                                handleWindowDrop(loc, countDownType, onOpenQuickTools)
+                                handleWindowDrop(loc, countDownType, onOpenQuickTools, onOpenLearning)
                             }
                         }
                         clearDraggingState()
@@ -376,12 +379,17 @@ fun ApplicationScope.FloatingWindow(
 private fun handleWindowDrop(
     location: java.awt.Point,
     countDownType: Int,
-    onOpenQuickTools: () -> Unit
+    onOpenQuickTools: () -> Unit,
+    onOpenLearning: () -> Unit
 ) {
     val dropTarget = detectDropTarget(location, countDownType)
     when (dropTarget) {
         DROP_TARGET_QUICK_TOOLS -> {
             onOpenQuickTools()
+            return
+        }
+        DROP_TARGET_OCR -> {
+            onOpenLearning()
             return
         }
         1, 2, 3, 4 -> {
@@ -405,6 +413,10 @@ private fun detectDropTarget(
     val localY = pointerY - panelBounds.y
     if (localY in QUICK_TOOLS_TARGET_TOP_PX..QUICK_TOOLS_TARGET_BOTTOM_PX) {
         return DROP_TARGET_QUICK_TOOLS
+    }
+
+    if (localY in OCR_TARGET_TOP_PX..OCR_TARGET_BOTTOM_PX) {
+        return DROP_TARGET_OCR
     }
 
     if (countDownType == 0) {

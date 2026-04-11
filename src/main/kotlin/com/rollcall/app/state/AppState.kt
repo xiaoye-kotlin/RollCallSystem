@@ -67,6 +67,8 @@ object AppState {
     var aiApiKey = ""
     /** AI模型名 */
     var aiModel = DEFAULT_AI_MODEL
+    /** AI模型是否支持图片输入 */
+    var aiModelSupportsImage = true
     /** AI温度参数 */
     var aiTemperature = DEFAULT_AI_TEMPERATURE
     /** OCR分析提示词 */
@@ -242,6 +244,15 @@ object AppState {
     private val _learningTriggerMode = MutableStateFlow(LearningTriggerMode.MANUAL)
     val learningTriggerMode: StateFlow<LearningTriggerMode> get() = _learningTriggerMode
     fun startLearning(triggerMode: LearningTriggerMode = LearningTriggerMode.MANUAL) {
+        if (_isLearning.value) {
+            if (
+                triggerMode == LearningTriggerMode.MANUAL &&
+                _learningTriggerMode.value == LearningTriggerMode.AUTO
+            ) {
+                _learningTriggerMode.value = LearningTriggerMode.MANUAL
+            }
+            return
+        }
         _learningTriggerMode.value = triggerMode
         _isLearning.value = true
     }

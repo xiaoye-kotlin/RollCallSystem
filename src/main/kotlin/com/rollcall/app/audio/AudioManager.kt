@@ -70,6 +70,22 @@ object AudioManager {
         }
     }
 
+    fun playTextAudio(text: String, baseUrl: String, isInternetAvailable: Boolean) {
+        val normalizedText = text.trim()
+        if (normalizedText.isBlank()) return
+
+        val voiceDir = File("D:/Xiaoye/Voice/Words/").apply { if (!exists()) mkdirs() }
+        val fileName = normalizedText.hashCode().toString() + ".mp3"
+        val localFile = File(voiceDir, fileName)
+
+        if (localFile.exists()) {
+            playLocal(localFile.absolutePath)
+        } else if (isInternetAvailable) {
+            val encodedText = URLEncoder.encode(normalizedText, "UTF-8")
+            downloadAndPlay("$baseUrl/voice.php?text=$encodedText", localFile)
+        }
+    }
+
     /**
      * 下载音频文件并播放
      */
