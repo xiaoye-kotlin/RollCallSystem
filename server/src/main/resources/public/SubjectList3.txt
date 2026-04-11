@@ -1,0 +1,82 @@
+{
+  "星期一": {
+    "schedule": [
+      { "period": 0, "subject": "自习", "start_time": "7:25", "end_time": "7:55", "dismissal_time": "8:00" },
+      { "period": 1, "subject": "语文", "start_time": "8:00", "end_time": "8:40", "dismissal_time": "8:50" },
+      { "period": 2, "subject": "英语", "start_time": "8:50", "end_time": "9:30", "dismissal_time": "9:55" },
+      { "period": 3, "subject": "英语", "start_time": "9:55", "end_time": "10:35", "dismissal_time": "10:40" },
+      { "period": 4, "subject": "数学", "start_time": "10:40", "end_time": "11:20", "dismissal_time": "11:30" },
+      { "period": 5, "subject": "数学", "start_time": "11:30", "end_time": "12:10", "dismissal_time": "12:50" },
+      { "period": 6, "subject": "物理", "start_time": "14:30", "end_time": "15:10", "dismissal_time": "15:20" },
+      { "period": 7, "subject": "生物", "start_time": "15:20", "end_time": "16:00", "dismissal_time": "16:10" },
+      { "period": 8, "subject": "班会", "start_time": "16:10", "end_time": "16:50", "dismissal_time": "17:00" },
+      { "period": 9, "subject": "自习", "start_time": "17:00", "end_time": "17:40", "dismissal_time": "18:10" },
+      { "period": 10, "subject": "英语", "start_time": "18:30", "end_time": "19:30", "dismissal_time": "19:40" },
+      { "period": 11, "subject": "自习", "start_time": "19:50", "end_time": "20:30", "dismissal_time": "20:40" }
+    ]
+  },
+  "星期二": {
+    "schedule": [
+      { "period": 0, "subject": "自习", "start_time": "7:25", "end_time": "7:55", "dismissal_time": "8:00" },
+      { "period": 1, "subject": "数学", "start_time": "8:00", "end_time": "8:40", "dismissal_time": "8:50" },
+      { "period": 2, "subject": "数学", "start_time": "8:50", "end_time": "9:30", "dismissal_time": "9:55" },
+      { "period": 3, "subject": "物理", "start_time": "9:55", "end_time": "10:35", "dismissal_time": "10:40" },
+      { "period": 4, "subject": "语文", "start_time": "10:40", "end_time": "11:20", "dismissal_time": "11:30" },
+      { "period": 5, "subject": "生物", "start_time": "11:30", "end_time": "12:10", "dismissal_time": "12:50" },
+      { "period": 6, "subject": "体育", "start_time": "14:30", "end_time": "15:10", "dismissal_time": "15:20" },
+      { "period": 7, "subject": "化学", "start_time": "15:20", "end_time": "16:00", "dismissal_time": "16:10" },
+      { "period": 8, "subject": "英语", "start_time": "16:10", "end_time": "16:50", "dismissal_time": "17:00" },
+      { "period": 9, "subject": "自习", "start_time": "17:00", "end_time": "17:40", "dismissal_time": "18:10" },
+      { "period": 10, "subject": "语文", "start_time": "18:30", "end_time": "19:30", "dismissal_time": "19:40" },
+      { "period": 11, "subject": "自习", "start_time": "19:50", "end_time": "20:30", "dismissal_time": "20:40" }
+    ]
+  },
+  "星期三": {
+    "schedule": [
+      { "period": 0, "subject": "自习", "start_time": "7:25", "end_time": "7:55", "dismissal_time": "8:00" },
+      { "period": 1, "subject": "英语", "start_time": "8:00", "end_time": "8:40", "dismissal_time": "8:50" },
+      { "period": 2, "subject": "语文", "start_time": "8:50", "end_time": "9:30", "dismissal_time": "9:55" },
+      { "period": 3, "subject": "数学", "start_time": "9:55", "end_time": "10:35", "dismissal_time": "10:40" },
+      { "period": 4, "subject": "生物", "start_time": "10:40", "end_time": "11:20", "dismissal_time": "11:30" },
+      { "period": 5, "subject": "体育", "start_time": "11:30", "end_time": "12:10", "dismissal_time": "12:50" },
+      { "period": 6, "subject": "政治", "start_time": "14:30", "end_time": "15:10", "dismissal_time": "15:20" },
+      { "period": 7, "subject": "物理", "start_time": "15:20", "end_time": "16:00", "dismissal_time": "16:10" },
+      { "period": 8, "subject": "化学", "start_time": "16:10", "end_time": "16:50", "dismissal_time": "17:00" },
+      { "period": 9, "subject": "自习", "start_time": "17:00", "end_time": "17:40", "dismissal_time": "18:10" },
+      { "period": 10, "subject": "数学", "start_time": "18:30", "end_time": "19:30", "dismissal_time": "19:40" },
+      { "period": 11, "subject": "自习", "start_time": "19:50", "end_time": "20:30", "dismissal_time": "20:40" }
+    ]
+  },
+  "星期四": {
+    "schedule": [
+      { "period": 0, "subject": "自习", "start_time": "7:25", "end_time": "7:55", "dismissal_time": "8:00" },
+      { "period": 1, "subject": "语文", "start_time": "8:00", "end_time": "8:40", "dismissal_time": "8:50" },
+      { "period": 2, "subject": "语文", "start_time": "8:50", "end_time": "9:30", "dismissal_time": "9:55" },
+      { "period": 3, "subject": "数学", "start_time": "9:55", "end_time": "10:35", "dismissal_time": "10:40" },
+      { "period": 4, "subject": "英语", "start_time": "10:40", "end_time": "11:20", "dismissal_time": "11:30" },
+      { "period": 5, "subject": "英语", "start_time": "11:30", "end_time": "12:10", "dismissal_time": "12:50" },
+      { "period": 6, "subject": "化学", "start_time": "14:30", "end_time": "15:10", "dismissal_time": "15:20" },
+      { "period": 7, "subject": "物理", "start_time": "15:20", "end_time": "16:00", "dismissal_time": "16:10" },
+      { "period": 8, "subject": "物理", "start_time": "16:10", "end_time": "16:50", "dismissal_time": "17:00" },
+      { "period": 9, "subject": "自习", "start_time": "17:00", "end_time": "17:40", "dismissal_time": "18:10" },
+      { "period": 10, "subject": "生/化", "start_time": "18:30", "end_time": "19:30", "dismissal_time": "19:40" },
+      { "period": 11, "subject": "自习", "start_time": "19:50", "end_time": "20:30", "dismissal_time": "20:40" }
+    ]
+  },
+  "星期五": {
+    "schedule": [
+      { "period": 0, "subject": "自习", "start_time": "7:25", "end_time": "7:55", "dismissal_time": "8:00" },
+      { "period": 1, "subject": "语文", "start_time": "8:00", "end_time": "8:40", "dismissal_time": "8:50" },
+      { "period": 2, "subject": "语文", "start_time": "8:50", "end_time": "9:30", "dismissal_time": "9:55" },
+      { "period": 3, "subject": "信息", "start_time": "9:55", "end_time": "10:35", "dismissal_time": "10:40" },
+      { "period": 4, "subject": "化学", "start_time": "10:40", "end_time": "11:20", "dismissal_time": "11:30" },
+      { "period": 5, "subject": "物理", "start_time": "11:30", "end_time": "12:10", "dismissal_time": "12:50" },
+      { "period": 6, "subject": "英语", "start_time": "14:00", "end_time": "14:40", "dismissal_time": "14:50" },
+      { "period": 7, "subject": "数学", "start_time": "14:50", "end_time": "15:30", "dismissal_time": "15:40" },
+      { "period": 8, "subject": "生物", "start_time": "15:40", "end_time": "16:20", "dismissal_time": "16:30" },
+      { "period": 9, "subject": "选修", "start_time": "16:30", "end_time": "17:40", "dismissal_time": "18:10" },
+      { "period": 10, "subject": "物理", "start_time": "18:30", "end_time": "19:30", "dismissal_time": "19:40" },
+      { "period": 11, "subject": "自习", "start_time": "19:40", "end_time": "20:30", "dismissal_time": "20:40" }
+    ]
+  }
+}
