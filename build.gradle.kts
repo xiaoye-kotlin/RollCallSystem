@@ -22,17 +22,11 @@ dependencies {
     // With compose.desktop.common you will also lose @Preview functionality
     implementation(compose.desktop.currentOs)
 
-    implementation("net.sourceforge.tess4j:tess4j:5.8.0")
-    implementation("com.asprise.ocr:java-ocr-api:15.3.0.3")
-
+    // RapidOCR - 纯Java本地OCR引擎，无需安装外部程序
     implementation("io.github.mymonstercat:rapidocr:0.0.7")
     implementation("io.github.mymonstercat:rapidocr-onnx-platform:0.0.7")
     implementation("io.github.mymonstercat:rapidocr-ncnn-platform:0.0.7")
     implementation("org.java-websocket:Java-WebSocket:1.5.3")
-    implementation("org.openjfx:javafx-controls:17")
-    implementation("org.openjfx:javafx-graphics:17")
-    implementation("org.openjfx:javafx-media:21.0.2")  // For media functionality
-
     // JNA (Java Native Access) for system-level interactions
     implementation("net.java.dev.jna:jna:5.13.0")
     implementation("net.java.dev.jna:jna-platform:5.13.0")
@@ -46,16 +40,13 @@ dependencies {
     // Gson for JSON parsing
     implementation("com.google.code.gson:gson:2.10.1")
 
-    // Add this to handle JavaFX + Swing integration
-    implementation("org.openjfx:javafx-packager:17")
-
     // Optional - For Compose Desktop testing, if needed
     testImplementation(compose.desktop.currentOs)
 }
 
 compose.desktop {
     application {
-        mainClass = "MainKt"
+        mainClass = "com.rollcall.app.AppKt"
 
         buildTypes.release {
 
