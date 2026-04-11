@@ -322,7 +322,8 @@ fun main() = application {
                 size = DpSize(400.dp, 400.dp)
             ),
             undecorated = true, transparent = true,
-            alwaysOnTop = true, resizable = false
+            alwaysOnTop = true, resizable = false,
+            focusable = false
         ) {
             setWindowIcon()
             AnimatedVisibility(

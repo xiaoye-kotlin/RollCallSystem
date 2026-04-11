@@ -60,6 +60,8 @@ fun videoWallpaper() {
     var fxPanel: JFXPanel? by remember { mutableStateOf(null) }
     var frame: JFrame? by remember { mutableStateOf(null) }
     var isRunWallpaper by remember { mutableStateOf(false) }
+    // Platform.runLater 之前必须先初始化 JavaFX toolkit，否则部分机器会直接抛出
+    remember { JFXPanel() }
 
     DisposableEffect(Unit) {
         onDispose {

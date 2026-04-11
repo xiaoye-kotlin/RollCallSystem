@@ -53,7 +53,8 @@ fun CountdownDayWindow(isVisible: Boolean) {
             size = DpSize(400.dp, 50.dp)
         ),
         undecorated = true, transparent = true,
-        alwaysOnTop = true, resizable = false
+        alwaysOnTop = true, resizable = false,
+        focusable = false
     ) {
         setWindowIcon()
 
@@ -159,7 +160,8 @@ fun MoreOptionsWindow(isVisible: Boolean, isCountDownEnabled: Boolean, currentDr
         title = "更多选项",
         state = state,
         undecorated = true, transparent = true,
-        alwaysOnTop = true, resizable = false
+        alwaysOnTop = true, resizable = false,
+        focusable = false
     ) {
         setWindowIcon()
 
@@ -245,30 +247,38 @@ fun ApplicationScope.FloatingWindow(
         var lastMouseLocation by remember { mutableStateOf<Pair<Int, Int>?>(null) }
         var pressJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
 
+        fun clearDraggingState() {
+            isDraggingBox = false
+            lastMouseLocation = null
+            AppState.setIsDragging(false)
+            AppState.setIsLongPressed(false)
+            onDropTargetChanged(DROP_TARGET_NONE)
+            pressJob?.cancel()
+            pressJob = null
+        }
+
         Box(Modifier.width(100.dp).height(100.dp)) {
             val clickThreshold = 200L
 
             // 设置鼠标事件监听
-            LaunchedEffect(Unit) {
+            DisposableEffect(window) {
                 var pressTime: Long = 0
                 var isClick = false
+                var didDrag = false
 
-                window.addMouseListener(object : java.awt.event.MouseAdapter() {
+                val mouseListener = object : java.awt.event.MouseAdapter() {
                     override fun mousePressed(e: java.awt.event.MouseEvent?) {
                         if (e == null || !javax.swing.SwingUtilities.isLeftMouseButton(e)) {
                             isClick = false
-                            isDraggingBox = false
-                            lastMouseLocation = null
-                            AppState.setIsDragging(false)
-                            onDropTargetChanged(DROP_TARGET_NONE)
-                            pressJob?.cancel()
+                            clearDraggingState()
                             return
                         }
                         pressTime = System.currentTimeMillis()
                         isClick = true
+                        didDrag = false
                         lastMouseLocation = e.locationOnScreen.let { Pair(it.x, it.y) }
                         isDraggingBox = true
-                        AppState.setIsDragging(true)
+                        AppState.setIsDragging(false)
                         onDropTargetChanged(DROP_TARGET_NONE)
                         javax.swing.SwingUtilities.invokeLater { window.toFront() }
 
@@ -281,37 +291,31 @@ fun ApplicationScope.FloatingWindow(
                     }
 
                     override fun mouseReleased(e: java.awt.event.MouseEvent?) {
-                        if (e == null) return
-
-                        if (!javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+                        if (e == null || !javax.swing.SwingUtilities.isLeftMouseButton(e)) {
+                            clearDraggingState()
                             return
                         }
 
                         val clickDuration = System.currentTimeMillis() - pressTime
                         if (clickDuration < clickThreshold && isClick) {
                             AppState.setButtonState("关闭")
-                            AppState.setIsLongPressed(false)
-                            pressJob?.cancel()
                         }
 
-                        isDraggingBox = false
-                        lastMouseLocation = null
-                        AppState.setIsDragging(false)
-                        pressJob?.cancel()
-
-                        e.locationOnScreen.let { mouseLocation ->
-                            val loc = window.location.apply {
-                                x = mouseLocation.x - window.width / 2
-                                y = mouseLocation.y - window.height / 2
+                        if (didDrag) {
+                            e.locationOnScreen.let { mouseLocation ->
+                                val loc = window.location.apply {
+                                    x = mouseLocation.x - window.width / 2
+                                    y = mouseLocation.y - window.height / 2
+                                }
+                                javax.swing.SwingUtilities.invokeLater { window.location = loc }
+                                handleWindowDrop(loc, countDownType, onOpenQuickTools)
                             }
-                            javax.swing.SwingUtilities.invokeLater { window.location = loc }
-                            onDropTargetChanged(DROP_TARGET_NONE)
-                            handleWindowDrop(loc, countDownType, onOpenQuickTools)
                         }
+                        clearDraggingState()
                     }
-                })
+                }
 
-                window.addMouseMotionListener(object : java.awt.event.MouseMotionAdapter() {
+                val mouseMotionListener = object : java.awt.event.MouseMotionAdapter() {
                     override fun mouseDragged(e: java.awt.event.MouseEvent?) {
                         if (e != null && javax.swing.SwingUtilities.isLeftMouseButton(e) && isDraggingBox) {
                             lastMouseLocation?.let { lastLoc ->
@@ -324,6 +328,8 @@ fun ApplicationScope.FloatingWindow(
                                     pressJob?.cancel()
                                     AppState.setIsLongPressed(false)
                                     isClick = false
+                                    didDrag = true
+                                    AppState.setIsDragging(true)
                                     val newLoc = window.location.apply { x += dx; y += dy }
                                     javax.swing.SwingUtilities.invokeLater {
                                         window.location = newLoc
@@ -337,7 +343,24 @@ fun ApplicationScope.FloatingWindow(
                             }
                         }
                     }
-                })
+                }
+
+                val windowFocusListener = object : java.awt.event.WindowAdapter() {
+                    override fun windowDeactivated(e: java.awt.event.WindowEvent?) {
+                        clearDraggingState()
+                    }
+                }
+
+                window.addMouseListener(mouseListener)
+                window.addMouseMotionListener(mouseMotionListener)
+                window.addWindowListener(windowFocusListener)
+
+                onDispose {
+                    clearDraggingState()
+                    window.removeMouseListener(mouseListener)
+                    window.removeMouseMotionListener(mouseMotionListener)
+                    window.removeWindowListener(windowFocusListener)
+                }
             }
 
             // 动态壁纸和悬浮窗UI
